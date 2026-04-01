@@ -1,0 +1,170 @@
+name: zerotrace
+version: "2.0"
+description: >
+  Autonomous benchmark for self-healing code and logic repair.
+  An AI agent diagnoses and patches buggy Python and PyTorch code
+  across six difficulty levels, verified by real unit tests.
+  Features multi-turn memory, security scanning, leaderboard,
+  episode replay, and model comparison.
+tags:
+  - code-repair
+  - debugging
+  - software-engineering
+  - autonomous-agents
+  - pytorch
+
+endpoint: "http://0.0.0.0:7860"
+
+observation_space:
+  type: object
+  model: environment.models.Observation
+  fields:
+    task_id:
+      type: string
+    level:
+      type: integer
+      min: 1
+      max: 6
+    buggy_code:
+      type: string
+    terminal_output:
+      type: string
+    test_results:
+      type: object
+    step_count:
+      type: integer
+    reward:
+      type: float
+      min: -1.0
+      max: 1.0
+    done:
+      type: boolean
+    conversation_history:
+      type: array
+      description: "Recent agent turns for multi-turn memory"
+
+action_space:
+  type: object
+  model: environment.models.Action
+  fields:
+    action_type:
+      type: string
+      enum:
+        - INSPECT_ERROR
+        - EDIT_CODE
+        - RUN_COMPILER
+        - EXECUTE_UNIT_TEST
+        - QUERY_CONTEXT
+        - SUBMIT_FIX
+        - SEARCH_DOCS
+        - RUN_SNIPPET
+    patched_code:
+      type: string
+      required: false
+    rationale:
+      type: string
+      required: false
+
+reward_space:
+  type: object
+  model: environment.models.Reward
+  fields:
+    value:
+      type: float
+      min: -1.0
+      max: 1.0
+    partial_credit:
+      type: float
+      min: 0.0
+      max: 1.0
+    penalty:
+      type: float
+      min: -1.0
+      max: 0.0
+    reason:
+      type: string
+
+tasks:
+  # Classic Python
+  - id: level1_keyerror
+    name: "Fix KeyError bug"
+    difficulty: easy
+    description: "Fix a function that crashes on missing dict keys"
+    grader: environment.test_runner.grade_level1
+    max_steps: 15
+    reward_range: [-1.0, 1.0]
+
+  - id: level2_resource_leak
+    name: "Fix resource leak"
+    difficulty: medium
+    description: "Fix an unclosed file handle with a context manager"
+    grader: environment.test_runner.grade_level2
+    max_steps: 15
+    reward_range: [-1.0, 1.0]
+
+  - id: level3_race_condition
+    name: "Fix race condition"
+    difficulty: hard
+    description: "Fix thread-unsafe counter with a Lock"
+    grader: environment.test_runner.grade_level3
+    max_steps: 15
+    reward_range: [-1.0, 1.0]
+
+  # PyTorch
+  - id: torch_dtype_mismatch
+    name: "Fix PyTorch dtype mismatch"
+    difficulty: pytorch-easy
+    description: "Fix CrossEntropyLoss dtype error (Float vs Long targets)"
+    grader: environment.test_runner.grade_level4
+    max_steps: 15
+    reward_range: [-1.0, 1.0]
+
+  - id: torch_nan_gradient
+    name: "Fix PyTorch NaN gradient"
+    difficulty: pytorch-medium
+    description: "Fix log(0) causing NaN in custom cross-entropy"
+    grader: environment.test_runner.grade_level5
+    max_steps: 15
+    reward_range: [-1.0, 1.0]
+
+  - id: torch_wrong_dim
+    name: "Fix PyTorch softmax dimension"
+    difficulty: pytorch-hard
+    description: "Fix softmax(dim=0) to dim=-1 in scaled dot-product attention"
+    grader: environment.test_runner.grade_level6
+    max_steps: 15
+    reward_range: [-1.0, 1.0]
+
+endpoints:
+  reset:
+    path: /api/v1/reset
+    method: POST
+    request_model: environment.models.ResetRequest
+    response_model: environment.models.Observation
+
+  step:
+    path: /api/v1/step
+    method: POST
+    request_model: environment.models.StepRequest
+    response_model: environment.models.StepResult
+
+  state:
+    path: /api/v1/state
+    method: GET
+    response_model: environment.models.Observation
+
+  tasks:
+    path: /api/v1/tasks
+    method: GET
+
+  leaderboard:
+    path: /api/v1/leaderboard
+    method: GET
+
+  replay:
+    path: /api/v1/replay/{task_id}
+    method: GET
+
+  health:
+    path: /health
+    method: GET

@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.vvenv/
+.env
+leaderboard_data/
+replay_data/
+reports_output/
+*.egg-info/
+dist/
+build/
+.DS_Store
+Thumbs.db
