@@ -5,7 +5,7 @@ Levels 4-6: PyTorch-specific bugs (easy → hard).
 """
 
 from . import level1, level2, level3
-from . import torch_dtype, torch_nan_grad, torch_wrong_dim
+from . import torch_dtype, torch_nan_grad, torch_wrong_dim, torch_ddp
 
 TASKS = {
     # ── Classic Python ──────────────────────────────────────────────────────
@@ -58,10 +58,18 @@ TASKS = {
         "buggy_code": torch_wrong_dim.BUGGY_CODE,
         "correct_code": torch_wrong_dim.CORRECT_CODE,
     },
+    "torch_ddp_batch": {
+        "name": "Fix DDP Batch Shape",
+        "level": 7,
+        "difficulty": "pytorch-expert",
+        "description": torch_ddp.DESCRIPTION,
+        "buggy_code": torch_ddp.BUGGY_CODE,
+        "correct_code": torch_ddp.CORRECT_CODE,
+    },
 }
 
 __all__ = [
     "TASKS",
     "level1", "level2", "level3",
-    "torch_dtype", "torch_nan_grad", "torch_wrong_dim",
+    "torch_dtype", "torch_nan_grad", "torch_wrong_dim", "torch_ddp",
 ]
