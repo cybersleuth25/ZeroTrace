@@ -1,8 +1,8 @@
 ---
 title: ZeroTrace
-emoji: "\u2B21"
-colorFrom: cyan
-colorTo: blue
+emoji: 👾
+colorFrom: blue
+colorTo: indigo
 sdk: docker
 pinned: true
 tags:
