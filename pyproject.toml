@@ -17,5 +17,9 @@ dependencies = [
     "requests",
     "pyyaml",
     "openai>=1.0.0",
-    "pytest"
+    "pytest",
+    "openenv-core>=0.2.0"
 ]
+
+[project.scripts]
+server = "server.app:main"
