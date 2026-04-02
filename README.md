@@ -44,7 +44,7 @@ a 15-step budget.
 |----------------|-------|
 | Observation    | Buggy code, terminal output, test results, conversation history |
 | Actions        | `INSPECT_ERROR`, `EDIT_CODE`, `RUN_COMPILER`, `EXECUTE_UNIT_TEST`, `QUERY_CONTEXT`, `SUBMIT_FIX`, `SEARCH_DOCS`, `RUN_SNIPPET` |
-| Reward         | Partial credit per test passed, penalties for bad actions |
+| Reward         | Partial credit per test passed, linear speed decay per step, penalties for bad actions |
 | Episode length | Max 15 steps |
 | Security       | Static code scanner blocks dangerous patterns before sandbox execution |
 
@@ -67,6 +67,7 @@ a 15-step budget.
 | 4 | Fix dtype mismatch | Easy | Float targets passed to CrossEntropyLoss (needs Long) |
 | 5 | Fix NaN gradient | Medium | `log(0)` in custom cross-entropy causes NaN loss |
 | 6 | Fix softmax dimension | Hard | `softmax(dim=0)` instead of `dim=-1` in attention |
+| 7 | Fix DDP batch shape | Expert | Linear layer and DistributedDataParallel (DDP) missing batch dimension |
 
 ---
 
