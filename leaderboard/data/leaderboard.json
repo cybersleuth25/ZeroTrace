@@ -47,5 +47,40 @@
     "reward": 0.5,
     "steps": 15,
     "timestamp": "2026-04-01T19:04:04.741312+00:00"
+  },
+  {
+    "model": "Qwen/Qwen2.5-72B-Instruct",
+    "task_id": "level1_keyerror",
+    "reward": -0.25,
+    "steps": 15,
+    "timestamp": "2026-04-02T09:43:24.493151+00:00"
+  },
+  {
+    "model": "Qwen/Qwen2.5-72B-Instruct",
+    "task_id": "level2_resource_leak",
+    "reward": 0.417,
+    "steps": 15,
+    "timestamp": "2026-04-02T09:44:12.733281+00:00"
+  },
+  {
+    "model": "Qwen/Qwen2.5-72B-Instruct",
+    "task_id": "level3_race_condition",
+    "reward": 0.5,
+    "steps": 15,
+    "timestamp": "2026-04-02T09:45:12.011707+00:00"
+  },
+  {
+    "model": "Qwen/Qwen2.5-72B-Instruct",
+    "task_id": "level1_keyerror",
+    "reward": 1.0,
+    "steps": 3,
+    "timestamp": "2026-04-02T11:00:57.824886+00:00"
+  },
+  {
+    "model": "Qwen/Qwen2.5-72B-Instruct",
+    "task_id": "level2_resource_leak",
+    "reward": 1.0,
+    "steps": 3,
+    "timestamp": "2026-04-02T11:01:50.001470+00:00"
   }
 ]

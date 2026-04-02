@@ -14,8 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import gradio as gr
 from dotenv import load_dotenv
-from huggingface_hub import InferenceClient
-from huggingface_hub.utils import HfHubHTTPError
+from openai import OpenAI
 
 from environment.env import api_app
 from environment.models import Observation, Action
@@ -37,6 +36,7 @@ load_dotenv()
 
 _DEFAULT_MODEL = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 _DEFAULT_TOKEN = os.environ.get("HF_TOKEN", "")
+_API_BASE_URL = os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1")
 _MAX_STEPS = 15
 
 
@@ -94,11 +94,11 @@ _FONT_MONO      = "'JetBrains Mono', 'Fira Code', monospace"
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-def _make_client(model_name: str, api_key: str) -> InferenceClient:
-    return InferenceClient(model=model_name, token=api_key)
+def _make_client(api_key: str) -> OpenAI:
+    return OpenAI(base_url=_API_BASE_URL, api_key=api_key)
 
 
-def _hf_error_msg(e: HfHubHTTPError, model_name: str) -> str:
+def _llm_error_msg(e: Exception, model_name: str) -> str:
     msg = str(e)
     if "401" in msg or "unauthorized" in msg.lower():
         return "Invalid HuggingFace token. Check huggingface.co/settings/tokens"
@@ -212,13 +212,13 @@ def run_agent_step(
         messages = build_messages(obs, conv_history)
 
         try:
-            client = _make_client(model_name, api_key)
-            response = client.chat_completion(messages=messages, max_tokens=1500)
+            client = _make_client(api_key)
+            response = client.chat.completions.create(
+                model=model_name, messages=messages, max_tokens=1500,
+            )
             llm_response = response.choices[0].message.content or ""
-        except HfHubHTTPError as e:
-            return *empty[:-1], _status_msg(_hf_error_msg(e, model_name), "err")
         except Exception as e:
-            return *empty[:-1], _status_msg(f"{type(e).__name__}: {e}", "err")
+            return *empty[:-1], _status_msg(_llm_error_msg(e, model_name), "err")
 
         new_conv = conv_history + [
             {"role": "user", "content": messages[-1]["content"]},
@@ -287,7 +287,7 @@ def run_full_episode(
         conv_history: List[Dict] = []
 
         try:
-            client = _make_client(model_name, api_key)
+            client = _make_client(api_key)
         except Exception as e:
             return *empty[:-1], _status_msg(f"Client error: {e}", "err")
 
@@ -307,12 +307,12 @@ def run_full_episode(
             messages = build_messages(obs, conv_history)
 
             try:
-                response = client.chat_completion(messages=messages, max_tokens=1500)
+                response = client.chat.completions.create(
+                    model=model_name, messages=messages, max_tokens=1500,
+                )
                 llm_response = response.choices[0].message.content or ""
-            except HfHubHTTPError as e:
-                return *empty[:-1], _status_msg(_hf_error_msg(e, model_name), "err")
             except Exception as e:
-                return *empty[:-1], _status_msg(f"LLM error: {e}", "err")
+                return *empty[:-1], _status_msg(_llm_error_msg(e, model_name), "err")
 
             conv_history = conv_history + [
                 {"role": "user", "content": messages[-1]["content"]},
@@ -461,7 +461,7 @@ def _run_episode_for_compare(
     try:
         obs = reset_episode(task_id)
         conv_history: List[Dict] = []
-        client = _make_client(model_name, api_key)
+        client = _make_client(api_key)
         force_test = False
         consec_inspect = 0
 
@@ -470,7 +470,9 @@ def _run_episode_for_compare(
                 break
             messages = build_messages(obs, conv_history)
             try:
-                resp = client.chat_completion(messages=messages, max_tokens=1500)
+                resp = client.chat.completions.create(
+                    model=model_name, messages=messages, max_tokens=1500,
+                )
                 llm_text = resp.choices[0].message.content or ""
             except Exception as e:
                 return {"error": str(e), "model": model_name}

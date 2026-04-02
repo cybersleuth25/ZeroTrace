@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """ZeroTrace Inference Script.
 
-Runs the ZeroTrace agent on all tasks and prints results.
-Must complete in under 20 minutes.
+Runs the ZeroTrace agent on all tasks and prints structured results.
+Must complete in under 20 minutes on vcpu=2, memory=8gb.
 
-Environment variables:
-  MODEL_NAME          : HuggingFace model to use (default: Qwen/Qwen2.5-72B-Instruct)
-  HF_TOKEN            : HuggingFace API token
-  ZEROTRACE_BASE_URL  : Base URL of the running app.py (default: http://localhost:7860)
-  RUN_TORCH_TASKS     : Set to '1' to include PyTorch tasks (default: '0')
+Required environment variables:
+  API_BASE_URL  : The API endpoint for the LLM (e.g. https://api-inference.huggingface.co/v1)
+  MODEL_NAME    : The model identifier (e.g. Qwen/Qwen2.5-72B-Instruct)
+  HF_TOKEN      : Your HuggingFace API key
+
+Optional:
+  ZEROTRACE_BASE_URL : Base URL of the running app.py (default: http://localhost:7860)
 """
 
 import os
@@ -16,36 +18,30 @@ import sys
 import json
 import time
 import re
-import requests
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 
+import requests
 from dotenv import load_dotenv
-from huggingface_hub import InferenceClient
-from huggingface_hub.utils import HfHubHTTPError
+from openai import OpenAI
 
 load_dotenv()
 
 # ---------------------------------------------------------------------------
-# Configuration
+# Configuration (uses the MANDATORY hackathon env vars)
 # ---------------------------------------------------------------------------
 
+API_BASE_URL = os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 BASE = os.environ.get("ZEROTRACE_BASE_URL", "http://localhost:7860")
-RUN_TORCH = os.environ.get("RUN_TORCH_TASKS", "0") == "1"
 
-# Classic tasks always run; PyTorch tasks are opt-in
-CLASSIC_TASKS = [
+# Tasks to run
+TASKS: List[str] = [
     "level1_keyerror",
     "level2_resource_leak",
     "level3_race_condition",
 ]
-TORCH_TASKS = [
-    "torch_dtype_mismatch",
-    "torch_nan_gradient",
-    "torch_wrong_dim",
-]
-TASKS: List[str] = CLASSIC_TASKS + (TORCH_TASKS if RUN_TORCH else [])
 
 MAX_STEPS = 15
 VALID_ACTIONS = {
@@ -56,7 +52,7 @@ VALID_ACTIONS = {
 
 
 # ---------------------------------------------------------------------------
-# Action parser (standalone copy — no dependency on app.py)
+# Action parser (standalone — no dependency on app.py)
 # ---------------------------------------------------------------------------
 
 def parse_action(text: str) -> Dict[str, Any]:
@@ -138,7 +134,7 @@ def build_system_prompt() -> str:
         "- SEARCH_DOCS: Search Python/PyTorch docs (set rationale=query)\n"
         "- SUBMIT_FIX: Submit final fix (include patched_code)\n\n"
         "## Strategy\n"
-        "1. INSPECT_ERROR → 2. EDIT_CODE → 3. EXECUTE_UNIT_TEST → 4. SUBMIT_FIX\n"
+        "1. INSPECT_ERROR -> 2. EDIT_CODE -> 3. EXECUTE_UNIT_TEST -> 4. SUBMIT_FIX\n"
         "Include the COMPLETE file in patched_code, not just a diff."
     )
 
@@ -148,15 +144,7 @@ def build_system_prompt() -> str:
 # ---------------------------------------------------------------------------
 
 def run_inference() -> Dict[str, Dict[str, Any]]:
-    print("=" * 60)
-    print("ZEROTRACE INFERENCE (HuggingFace)")
-    print("=" * 60)
-    print(f"Model      : {MODEL_NAME}")
-    print(f"Base URL   : {BASE}")
-    print(f"Tasks      : {len(TASKS)} ({', '.join(TASKS)})")
-    print("=" * 60)
-
-    # Token validation
+    # ── Validate env vars ──────────────────────────────────────────
     if not HF_TOKEN:
         print("ERROR: HF_TOKEN not set. Get one at huggingface.co/settings/tokens")
         sys.exit(1)
@@ -164,7 +152,7 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
         print("ERROR: HF_TOKEN appears to be a placeholder. Set a real token.")
         sys.exit(1)
 
-    # Server health check
+    # ── Server health check ────────────────────────────────────────
     try:
         health = requests.get(f"{BASE}/health", timeout=10)
         health.raise_for_status()
@@ -174,16 +162,22 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
         print(f"Details: {e}")
         sys.exit(1)
 
-    client = InferenceClient(model=MODEL_NAME, token=HF_TOKEN)
+    # ── OpenAI Client (MANDATORY per hackathon rules) ──────────────
+    client = OpenAI(
+        base_url=API_BASE_URL,
+        api_key=HF_TOKEN,
+    )
+
     results: Dict[str, Dict[str, Any]] = {}
 
     for task_id in TASKS:
-        print(f"\n{'=' * 40}")
-        print(f"Task: {task_id}")
-        print("=" * 40)
+
+        # ── [START] log ────────────────────────────────────────────
+        start_time = datetime.now(timezone.utc).isoformat()
+        print(f"[START] task_id={task_id} model={MODEL_NAME} timestamp={start_time}")
 
         try:
-            # Reset — use versioned route, fall back to legacy
+            # Reset episode
             reset_resp = requests.post(
                 f"{BASE}/api/v1/reset",
                 json={"task_id": task_id},
@@ -200,24 +194,26 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
 
             for step_num in range(MAX_STEPS):
                 steps = step_num + 1
-                print(f"\n--- Step {steps} ---")
 
                 # Build messages (multi-turn)
                 messages = [{"role": "system", "content": build_system_prompt()}]
                 messages += conv_messages[-10:]   # last 5 turns
                 messages.append({"role": "user", "content": json.dumps(obs, indent=2)})
 
+                # ── LLM call via OpenAI Client ─────────────────────
                 try:
-                    response = client.chat_completion(messages=messages, max_tokens=1500)
+                    response = client.chat.completions.create(
+                        model=MODEL_NAME,
+                        messages=messages,
+                        max_tokens=1500,
+                    )
                     text = response.choices[0].message.content or ""
-                except HfHubHTTPError as e:
+                except Exception as e:
                     err = str(e)
                     if "402" in err or "payment required" in err.lower():
-                        raise RuntimeError("402 Payment Required from HuggingFace.") from e
+                        raise RuntimeError("402 Payment Required. Add billing or use a smaller model.") from e
                     if "401" in err or "unauthorized" in err.lower():
                         raise RuntimeError("401 Unauthorized. Check HF_TOKEN.") from e
-                    raise RuntimeError(f"HuggingFace API Error: {err[:180]}") from e
-                except Exception as e:
                     print(f"LLM Error: {e}")
                     text = ""
 
@@ -247,14 +243,13 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
                 elif action["action_type"] in {"EXECUTE_UNIT_TEST", "SUBMIT_FIX"}:
                     force_test = False
 
-                print(f"Action: {action['action_type']}")
-
+                # Step the environment
                 step_resp = requests.post(
                     f"{BASE}/api/v1/step",
                     json={
                         "task_id": task_id,
                         "action": action,
-                        "model_name": MODEL_NAME,   # for leaderboard auto-record
+                        "model_name": MODEL_NAME,
                     },
                     timeout=30,
                 )
@@ -263,13 +258,22 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
 
                 obs = step_data["observation"]
                 final_reward = step_data["reward"]["value"]
-
-                print(f"Reward: {final_reward:.2f}")
                 tr = obs.get("test_results", {})
-                print(f"Tests: {tr.get('passed', 0)}/{tr.get('total', 0)}")
+                passed = tr.get("passed", 0)
+                total = tr.get("total", 0)
+                done = step_data["done"]
 
-                if step_data["done"]:
-                    print("Episode complete!")
+                # ── [STEP] log ─────────────────────────────────────
+                print(
+                    f"[STEP] task_id={task_id} "
+                    f"step={steps} "
+                    f"action={action['action_type']} "
+                    f"reward={final_reward:.4f} "
+                    f"tests_passed={passed}/{total} "
+                    f"done={done}"
+                )
+
+                if done:
                     break
 
                 time.sleep(0.5)
@@ -277,12 +281,21 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
             results[task_id] = {"reward": final_reward, "steps": steps}
 
         except Exception as e:
-            print(f"Error on {task_id}: {e}")
+            print(f"ERROR on {task_id}: {e}")
             results[task_id] = {"reward": 0.0, "steps": 0, "error": str(e)}
 
-    # ---------------------------------------------------------------------------
-    # Summary
-    # ---------------------------------------------------------------------------
+        # ── [END] log ──────────────────────────────────────────────
+        end_time = datetime.now(timezone.utc).isoformat()
+        r = results[task_id]
+        print(
+            f"[END] task_id={task_id} "
+            f"reward={r['reward']:.4f} "
+            f"steps={r.get('steps', 0)} "
+            f"error={r.get('error', '')} "
+            f"timestamp={end_time}"
+        )
+
+    # ── Final summary ──────────────────────────────────────────────
     print("\n" + "=" * 60)
     print("=== ZEROTRACE INFERENCE RESULTS ===")
     print("=" * 60)
