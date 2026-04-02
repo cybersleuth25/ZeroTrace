@@ -36,25 +36,21 @@ def compute_reward(
     passed = test_results.get("passed", 0)
     total = test_results.get("total", 0)
     partial = passed / total if total > 0 else 0.0
-    penalty = 0.0
+    penalty = -((step_count - 1) * 0.02) # Linear speed decay
     reason = ""
 
     # Penalties
     if action_type == "SUBMIT_FIX" and passed < total:
-        penalty = -0.3
+        penalty -= 0.3
         reason = "Submitted fix with failing tests"
 
     elif action_type == "RUN_COMPILER":
         syntax = check_syntax(code)
         if syntax["valid"]:
-            penalty = -0.1
+            penalty -= 0.1
             reason = "Ran compiler when no syntax error present"
         else:
             reason = "Compiler check found syntax error"
-
-    elif step_count > 10:
-        penalty = round(-0.05 * (step_count - 10), 2)
-        reason = f"Efficiency penalty at step {step_count}"
 
     # Full reward when all tests pass
     if passed == total and total > 0:
@@ -154,7 +150,7 @@ class EpisodeState:
                 scan = scan_code(action.patched_code)
                 if not scan.safe:
                     self.terminal_output = (
-                        f"⛔ Security scan blocked this code:\n{scan.reason}"
+                        f"[BLOCKED] Security scan blocked this code:\n{scan.reason}"
                     )
                     info["security_blocked"] = True
                 else:
@@ -206,7 +202,7 @@ class EpisodeState:
                 scan = scan_code(action.patched_code)
                 if not scan.safe:
                     self.terminal_output = (
-                        f"⛔ Security scan blocked snippet:\n{scan.reason}"
+                        f"[BLOCKED] Security scan blocked snippet:\n{scan.reason}"
                     )
                     info["security_blocked"] = True
                 else:
@@ -223,7 +219,7 @@ class EpisodeState:
                 scan = scan_code(action.patched_code)
                 if not scan.safe:
                     self.terminal_output = (
-                        f"⛔ Security scan blocked submission:\n{scan.reason}"
+                        f"[BLOCKED] Security scan blocked submission:\n{scan.reason}"
                     )
                     info["security_blocked"] = True
                 else:
@@ -235,13 +231,13 @@ class EpisodeState:
             if self.test_results["passed"] == self.test_results["total"]:
                 self.done = True
                 self.terminal_output = (
-                    f"✅ SUCCESS! All {self.test_results['total']} tests passed!"
+                    f"[SUCCESS] All {self.test_results['total']} tests passed!"
                 )
             else:
                 failed = self.test_results["total"] - self.test_results["passed"]
                 details = "\n".join(self.test_results.get("details", []))
                 self.terminal_output = (
-                    f"❌ FAILED: {failed} test(s) still failing.\n\n{details}"
+                    f"[FAILED] {failed} test(s) still failing.\n\n{details}"
                 )
 
             info["submitted"] = True

@@ -47,24 +47,25 @@ _MAX_STEPS = 15
 class _Icons:
     """Minimal inline SVG icons. 16x16 viewBox, stroke-based."""
 
-    _S = 'xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
+    _S = 'xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"'
 
-    HEXAGON   = f'<svg {_S}><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>'
+    # Modern Lucide-style icons replacing the sharp brutalist shapes
+    BOX       = f'<svg {_S}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>'
     PLAY      = f'<svg {_S}><polygon points="5 3 19 12 5 21 5 3"/></svg>'
     ZAP       = f'<svg {_S}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'
-    ROTATE    = f'<svg {_S}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>'
+    ROTATE    = f'<svg {_S}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>'
     TERMINAL  = f'<svg {_S}><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>'
     CODE      = f'<svg {_S}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>'
     AWARD     = f'<svg {_S}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>'
-    FILM      = f'<svg {_S}><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/></svg>'
-    COLUMNS   = f'<svg {_S}><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18"/></svg>'
-    FILE_TEXT = f'<svg {_S}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>'
-    FOLDER    = f'<svg {_S}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>'
+    FILM      = f'<svg {_S}><rect width="20" height="20" x="2" y="2" rx="2.18" ry="2.18"/><line x1="7" x2="7" y1="2" y2="22"/><line x1="17" x2="17" y1="2" y2="22"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="2" x2="7" y1="7" y2="7"/><line x1="2" x2="7" y1="17" y2="17"/><line x1="17" x2="22" y1="7" y2="7"/><line x1="17" x2="22" y1="17" y2="17"/></svg>'
+    COLUMNS   = f'<svg {_S}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="12" x2="12" y1="3" y2="21"/></svg>'
+    FILE_TEXT = f'<svg {_S}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>'
+    FOLDER    = f'<svg {_S}><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>'
     DOWNLOAD  = f'<svg {_S}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
-    SEARCH    = f'<svg {_S}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
-    CHECK     = f'<svg {_S} stroke="#22c55e"><polyline points="20 6 9 17 4 12"/></svg>'
-    X_MARK    = f'<svg {_S} stroke="#ef4444"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
-    MINUS     = f'<svg {_S} stroke="#f59e0b"><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+    SEARCH    = f'<svg {_S}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>'
+    CHECK     = f'<svg {_S} stroke="#10b981"><polyline points="20 6 9 17 4 12"/></svg>'
+    X_MARK    = f'<svg {_S} stroke="#ef4444"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
+    MINUS     = f'<svg {_S} stroke="#f59e0b"><path d="M5 12h14"/></svg>'
 
 ICO = _Icons()
 
@@ -73,20 +74,20 @@ ICO = _Icons()
 # Design tokens
 # ---------------------------------------------------------------------------
 
-_ACCENT         = "#00d4ff"
-_ACCENT_DIM     = "#006680"
-_BG_BASE        = "#0a0e14"
-_BG_RAISED      = "#111720"
-_BG_CARD        = "rgba(17, 23, 32, 0.7)"
-_BORDER         = "#1c2333"
-_BORDER_ACCENT  = "#00394d"
-_TEXT            = "#c5cdd8"
-_TEXT_DIM        = "#5c6a7a"
-_SUCCESS         = "#22c55e"
+_ACCENT         = "#ededed"
+_ACCENT_DIM     = "#a1a1aa"
+_BG_BASE        = "#000000"
+_BG_RAISED      = "#0a0a0a"
+_BG_CARD        = "#0a0a0a"
+_BORDER         = "#27272a"
+_BORDER_ACCENT  = "#3f3f46"
+_TEXT            = "#ededed"
+_TEXT_DIM        = "#a1a1aa"
+_SUCCESS         = "#10b981"
 _WARN            = "#f59e0b"
 _DANGER          = "#ef4444"
 
-_FONT_SANS      = "'Space Grotesk', system-ui, -apple-system, sans-serif"
+_FONT_SANS      = "'Inter', system-ui, -apple-system, sans-serif"
 _FONT_MONO      = "'JetBrains Mono', 'Fira Code', monospace"
 
 
@@ -579,7 +580,7 @@ def generate_and_preview_report(model_name: str) -> Tuple[str, Optional[str]]:
 # ---------------------------------------------------------------------------
 
 CSS = f"""
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* ── Root ───────────────────────────────────────────────────────── */
 .gradio-container {{
@@ -597,7 +598,6 @@ CSS = f"""
     background: {_BG_CARD} !important;
     border: 1px solid {_BORDER} !important;
     border-radius: 8px !important;
-    backdrop-filter: blur(12px) !important;
 }}
 
 /* ── Labels ─────────────────────────────────────────────────────── */
@@ -733,7 +733,7 @@ HEADER_HTML = f"""
         gap: 12px;
         margin-bottom: 10px;
     ">
-        <span style="color:{_ACCENT};opacity:0.8">{ICO.HEXAGON}</span>
+        <span style="color:{_ACCENT};opacity:0.8">{ICO.BOX}</span>
         <h1 style="
             color: {_TEXT};
             font-family: {_FONT_SANS};
@@ -744,7 +744,7 @@ HEADER_HTML = f"""
         ">
             ZERO<span style="color:{_ACCENT}">TRACE</span>
         </h1>
-        <span style="color:{_ACCENT};opacity:0.8">{ICO.HEXAGON}</span>
+        <span style="color:{_ACCENT};opacity:0.8">{ICO.BOX}</span>
     </div>
     <p style="
         color: {_TEXT_DIM};
