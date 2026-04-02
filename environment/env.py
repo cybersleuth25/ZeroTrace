@@ -65,11 +65,12 @@ async def health_check() -> Dict[str, str]:
 # ---------------------------------------------------------------------------
 
 @api_app.post("/api/v1/reset", response_model=Observation, tags=["environment"])
-async def v1_reset(request: ResetRequest) -> Observation:
+async def v1_reset(request: Optional[ResetRequest] = None) -> Observation:
     """Reset the environment to a specific task."""
-    _validate_task(request.task_id)
+    task_id = request.task_id if request and request.task_id else "level1_keyerror"
+    _validate_task(task_id)
     try:
-        return reset_episode(request.task_id)
+        return reset_episode(task_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -208,7 +209,7 @@ _DEPRECATION_HEADERS = {"X-Deprecation-Notice": "Use /api/v1/* endpoints"}
 
 @api_app.post("/reset", response_model=Observation, tags=["legacy"],
               include_in_schema=False)
-async def legacy_reset(request: ResetRequest) -> Observation:
+async def legacy_reset(request: Optional[ResetRequest] = None) -> Observation:
     return await v1_reset(request)
 
 

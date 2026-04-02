@@ -86,7 +86,7 @@ class StepResult(BaseModel):
 class ResetRequest(BaseModel):
     """Request to reset the environment to a specific task."""
 
-    task_id: str = Field(..., description="Task ID to reset to")
+    task_id: Optional[str] = Field(default=None, description="Task ID to reset to. Defaults to level1")
 
 
 class StepRequest(BaseModel):
