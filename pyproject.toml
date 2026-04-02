@@ -7,7 +7,7 @@ name = "zerotrace"
 version = "2.0.0"
 description = "ZeroTrace autonomous code repair environment"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.100.0",
     "uvicorn>=0.23.0",
