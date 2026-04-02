@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zerotrace"
+version = "2.0.0"
+description = "ZeroTrace autonomous code repair environment"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "gradio>=4.0.0",
+    "pydantic>=2.0.0",
+    "python-dotenv",
+    "requests",
+    "pyyaml",
+    "openai>=1.0.0",
+    "pytest"
+]
