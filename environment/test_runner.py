@@ -43,30 +43,45 @@ def run_tests(level: int, patched_code: str) -> Dict[str, Any]:
     if fn is None:
         return {"passed": 0, "failed": 0, "total": 0,
                 "details": [f"Unknown level: {level}"], "score": 0.01}
-    return fn(patched_code)
+    try:
+        result = fn(patched_code)
+        result["score"] = _clamp_score(result.get("score", 0.0))
+        return result
+    except Exception as e:
+        return {"passed": 0, "failed": 0, "total": 0,
+                "details": [f"Grader error: {e}"], "score": 0.01}
 
 
 # ---------------------------------------------------------------------------
 # Convenience grade functions (return 0.0-1.0 float)
 # ---------------------------------------------------------------------------
 
+def _safe_grade(fn, code: str) -> float:
+    """Run a grader function and guarantee the result is in (0, 1)."""
+    try:
+        result = fn(code)
+        return _clamp_score(result.get("score", 0.0))
+    except Exception:
+        return 0.01
+
+
 def grade_level1(code: str) -> float:
-    return _clamp_score(_run_level1_tests(code)["score"])
+    return _safe_grade(_run_level1_tests, code)
 
 def grade_level2(code: str) -> float:
-    return _clamp_score(_run_level2_tests(code)["score"])
+    return _safe_grade(_run_level2_tests, code)
 
 def grade_level3(code: str) -> float:
-    return _clamp_score(_run_level3_tests(code)["score"])
+    return _safe_grade(_run_level3_tests, code)
 
 def grade_level4(code: str) -> float:
-    return _clamp_score(_run_level4_tests(code)["score"])
+    return _safe_grade(_run_level4_tests, code)
 
 def grade_level5(code: str) -> float:
-    return _clamp_score(_run_level5_tests(code)["score"])
+    return _safe_grade(_run_level5_tests, code)
 
 def grade_level6(code: str) -> float:
-    return _clamp_score(_run_level6_tests(code)["score"])
+    return _safe_grade(_run_level6_tests, code)
 
 
 # ---------------------------------------------------------------------------

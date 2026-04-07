@@ -26,7 +26,7 @@ class Observation(BaseModel):
     )
     step_count: int = Field(default=0, ge=0, description="Current step number")
     reward: float = Field(
-        default=0.0, ge=-1.0, le=1.0, description="Cumulative reward"
+        default=0.01, ge=-1.0, le=1.0, description="Cumulative reward"
     )
     done: bool = Field(default=False, description="Whether the episode is complete")
     # Multi-turn memory: last N conversation turns for the agent

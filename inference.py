@@ -27,6 +27,15 @@ from openai import OpenAI
 
 load_dotenv()
 
+
+def _clamp(v: float) -> float:
+    """Clamp a score to the open interval (0, 1)."""
+    if v <= 0.0:
+        return 0.01
+    if v >= 1.0:
+        return 0.99
+    return round(v, 4)
+
 # ---------------------------------------------------------------------------
 # Configuration (uses the MANDATORY hackathon env vars)
 # ---------------------------------------------------------------------------
@@ -191,7 +200,7 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
             obs = reset_resp.json()
 
             steps = 0
-            final_reward = 0.0
+            final_reward = 0.01
             force_test = False
             consec_inspect = 0
             conv_messages: list = []
@@ -282,11 +291,11 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
 
                 time.sleep(0.5)
 
-            results[task_id] = {"reward": final_reward, "steps": steps}
+            results[task_id] = {"reward": _clamp(final_reward), "steps": steps}
 
         except Exception as e:
             print(f"ERROR on {task_id}: {e}")
-            results[task_id] = {"reward": 0.0, "steps": 0, "error": str(e)}
+            results[task_id] = {"reward": 0.01, "steps": 0, "error": str(e)}
 
         # ── [END] log ──────────────────────────────────────────────
         end_time = datetime.now(timezone.utc).isoformat()

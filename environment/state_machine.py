@@ -21,6 +21,15 @@ _HISTORY_WINDOW = 5
 # Reward computation
 # ---------------------------------------------------------------------------
 
+def _clamp_reward_score(v: float) -> float:
+    """Clamp a score/partial_credit to (0, 1) exclusive."""
+    if v <= 0.0:
+        return 0.01
+    if v >= 1.0:
+        return 0.99
+    return round(v, 4)
+
+
 def compute_reward(
     action_type: str,
     test_results: Dict[str, Any],
@@ -54,7 +63,7 @@ def compute_reward(
 
     # Full reward when all tests pass
     if passed == total and total > 0:
-        return Reward(value=1.0, partial_credit=1.0, penalty=0.0,
+        return Reward(value=0.99, partial_credit=0.99, penalty=0.0,
                       reason="All tests pass")
 
     # Progress reward
@@ -66,7 +75,10 @@ def compute_reward(
         reason = "No tests passing yet" if passed == 0 else f"{passed}/{total} tests passing"
 
     value = round(max(-1.0, min(1.0, partial + penalty)), 3)
-    return Reward(value=value, partial_credit=round(partial, 2),
+    # Clamp value and partial_credit to open interval (0, 1)
+    clamped_value = _clamp_reward_score(value) if -1.0 < value else value
+    clamped_partial = _clamp_reward_score(partial)
+    return Reward(value=round(value, 3), partial_credit=clamped_partial,
                   penalty=round(penalty, 2), reason=reason)
 
 
@@ -89,7 +101,7 @@ class EpisodeState:
             "passed": 0, "failed": 0, "total": 0, "details": [], "score": 0.01
         }
         self.step_count: int = 0
-        self.cumulative_reward: float = 0.0
+        self.cumulative_reward: float = 0.01
         self.done: bool = False
         self.prev_passed: int = 0
         # Multi-turn memory
@@ -110,7 +122,7 @@ class EpisodeState:
         self.current_code = task["buggy_code"]
         self.terminal_output = ""
         self.step_count = 0
-        self.cumulative_reward = 0.0
+        self.cumulative_reward = 0.01
         self.done = False
         self.prev_passed = 0
         self._history = []
@@ -128,7 +140,7 @@ class EpisodeState:
         if self.done:
             return StepResult(
                 observation=self.get_observation(),
-                reward=Reward(value=0.0, partial_credit=0.0, penalty=0.0,
+                reward=Reward(value=0.01, partial_credit=0.01, penalty=0.0,
                               reason="Episode already complete"),
                 done=True,
                 info={"error": "Episode already complete"},
