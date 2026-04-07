@@ -13,6 +13,18 @@ from typing import Any, Dict, List
 from .sandbox import run_code_safely, check_syntax
 
 
+def _clamp_score(score: float) -> float:
+    """Clamp score to the open interval (0, 1).
+
+    The OpenEnv validator requires *strictly* 0 < score < 1.
+    """
+    if score <= 0.0:
+        return 0.01
+    if score >= 1.0:
+        return 0.99
+    return round(score, 4)
+
+
 # ---------------------------------------------------------------------------
 # Public dispatcher
 # ---------------------------------------------------------------------------
@@ -30,7 +42,7 @@ def run_tests(level: int, patched_code: str) -> Dict[str, Any]:
     fn = dispatch.get(level)
     if fn is None:
         return {"passed": 0, "failed": 0, "total": 0,
-                "details": [f"Unknown level: {level}"], "score": 0.0}
+                "details": [f"Unknown level: {level}"], "score": 0.01}
     return fn(patched_code)
 
 
@@ -39,22 +51,22 @@ def run_tests(level: int, patched_code: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def grade_level1(code: str) -> float:
-    return _run_level1_tests(code)["score"]
+    return _clamp_score(_run_level1_tests(code)["score"])
 
 def grade_level2(code: str) -> float:
-    return _run_level2_tests(code)["score"]
+    return _clamp_score(_run_level2_tests(code)["score"])
 
 def grade_level3(code: str) -> float:
-    return _run_level3_tests(code)["score"]
+    return _clamp_score(_run_level3_tests(code)["score"])
 
 def grade_level4(code: str) -> float:
-    return _run_level4_tests(code)["score"]
+    return _clamp_score(_run_level4_tests(code)["score"])
 
 def grade_level5(code: str) -> float:
-    return _run_level5_tests(code)["score"]
+    return _clamp_score(_run_level5_tests(code)["score"])
 
 def grade_level6(code: str) -> float:
-    return _run_level6_tests(code)["score"]
+    return _clamp_score(_run_level6_tests(code)["score"])
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +80,7 @@ def _syntax_gate(patched_code: str, total: int) -> Dict[str, Any]:
         return {
             "passed": 0, "failed": total, "total": total,
             "details": [f"SyntaxError at line {syntax['line']}: {syntax['error']}"],
-            "score": 0.0,
+            "score": 0.01,
         }
     return {}  # empty = OK
 
@@ -140,7 +152,7 @@ except Exception as e:
     weights = [0.33, 0.33, 0.34]
     score = sum(w for i, w in enumerate(weights) if i < passed)
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": round(score, 2)}
+            "details": details, "score": _clamp_score(score)}
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +177,7 @@ def _run_level2_tests(patched_code: str) -> Dict[str, Any]:
             temp_path = f.name
     except Exception as e:
         return {"passed": 0, "failed": total, "total": total,
-                "details": [f"Setup error: {e}"], "score": 0.0}
+                "details": [f"Setup error: {e}"], "score": 0.01}
 
     try:
         t1 = f'''
@@ -203,7 +215,7 @@ print("TEST1_PASS")
     weights = [0.34, 0.33, 0.33]
     score = sum(w for i, w in enumerate(weights) if i < passed)
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": round(score, 2)}
+            "details": details, "score": _clamp_score(score)}
 
 
 # ---------------------------------------------------------------------------
@@ -281,7 +293,7 @@ else:
 
     score = passed * 0.25
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": round(score, 2)}
+            "details": details, "score": _clamp_score(score)}
 
 
 # ---------------------------------------------------------------------------
@@ -352,7 +364,7 @@ except Exception as e:
     weights = [0.34, 0.33, 0.33]
     score = sum(w for i, w in enumerate(weights) if i < passed)
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": round(score, 2)}
+            "details": details, "score": _clamp_score(score)}
 
 
 # ---------------------------------------------------------------------------
@@ -415,7 +427,7 @@ except Exception as e:
     weights = [0.34, 0.33, 0.33]
     score = sum(w for i, w in enumerate(weights) if i < passed)
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": round(score, 2)}
+            "details": details, "score": _clamp_score(score)}
 
 
 # ---------------------------------------------------------------------------
@@ -491,4 +503,4 @@ except Exception as e:
     weights = [0.34, 0.33, 0.33]
     score = sum(w for i, w in enumerate(weights) if i < passed)
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": round(score, 2)}
+            "details": details, "score": _clamp_score(score)}

@@ -86,7 +86,7 @@ class EpisodeState:
         self.current_code: str = ""
         self.terminal_output: str = ""
         self.test_results: Dict[str, Any] = {
-            "passed": 0, "failed": 0, "total": 0, "details": [], "score": 0.0
+            "passed": 0, "failed": 0, "total": 0, "details": [], "score": 0.01
         }
         self.step_count: int = 0
         self.cumulative_reward: float = 0.0
