@@ -76,9 +76,9 @@ def compute_reward(
 
     value = round(max(-1.0, min(1.0, partial + penalty)), 3)
     # Clamp value and partial_credit to open interval (0, 1)
-    clamped_value = _clamp_reward_score(value) if -1.0 < value else value
+    clamped_value = _clamp_reward_score(value)
     clamped_partial = _clamp_reward_score(partial)
-    return Reward(value=round(value, 3), partial_credit=clamped_partial,
+    return Reward(value=clamped_value, partial_credit=clamped_partial,
                   penalty=round(penalty, 2), reason=reason)
 
 
