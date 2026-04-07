@@ -18,6 +18,7 @@ dependencies = [
     "pyyaml",
     "openai>=1.0.0",
     "pytest",
+    "openenv-core>=0.2.0",
 ]
 
 [project.scripts]
