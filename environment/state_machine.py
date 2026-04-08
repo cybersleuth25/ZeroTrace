@@ -22,15 +22,11 @@ _HISTORY_WINDOW = 5
 # Reward computation
 # ---------------------------------------------------------------------------
 
-def _clamp_reward_score(v: float) -> float:
-    """Clamp a score/partial_credit to (0, 1) exclusive.
-
-    Clamps BEFORE rounding so round() cannot push to boundary.
-    """
+def _clamp_reward_score(v: float) -> int:
+    """Clamp a score/partial_credit to 0 or 1."""
     if not math.isfinite(v):
-        return 0.01
-    clamped = max(0.01, min(0.99, v))
-    return round(clamped, 4)
+        return 0
+    return int(round(max(0.0, min(1.0, v))))
 
 
 def compute_reward(
@@ -66,7 +62,7 @@ def compute_reward(
 
     # Full reward when all tests pass
     if passed == total and total > 0:
-        return Reward(value=0.99, partial_credit=0.99, penalty=0.0,
+        return Reward(value=1, partial_credit=1, penalty=0,
                       reason="All tests pass")
 
     # Progress reward
@@ -77,12 +73,11 @@ def compute_reward(
     if not reason:
         reason = "No tests passing yet" if passed == 0 else f"{passed}/{total} tests passing"
 
-    value = round(max(-1.0, min(1.0, partial + penalty)), 3)
-    # Clamp value and partial_credit to open interval (0, 1)
+    value = partial + penalty
     clamped_value = _clamp_reward_score(value)
     clamped_partial = _clamp_reward_score(partial)
     return Reward(value=clamped_value, partial_credit=clamped_partial,
-                  penalty=round(penalty, 2), reason=reason)
+                  penalty=int(round(penalty)), reason=reason)
 
 
 # ---------------------------------------------------------------------------
@@ -101,10 +96,10 @@ class EpisodeState:
         self.current_code: str = ""
         self.terminal_output: str = ""
         self.test_results: Dict[str, Any] = {
-            "passed": 0, "failed": 0, "total": 0, "details": [], "score": 0.01
+            "passed": 0, "failed": 0, "total": 0, "details": [], "score": 0
         }
         self.step_count: int = 0
-        self.cumulative_reward: float = 0.01
+        self.cumulative_reward: int = 0
         self.done: bool = False
         self.prev_passed: int = 0
         # Multi-turn memory
@@ -125,7 +120,7 @@ class EpisodeState:
         self.current_code = task["buggy_code"]
         self.terminal_output = ""
         self.step_count = 0
-        self.cumulative_reward = 0.01
+        self.cumulative_reward = 0
         self.done = False
         self.prev_passed = 0
         self._history = []
@@ -143,7 +138,7 @@ class EpisodeState:
         if self.done:
             return StepResult(
                 observation=self.get_observation(),
-                reward=Reward(value=0.01, partial_credit=0.01, penalty=0.0,
+                reward=Reward(value=0, partial_credit=0, penalty=0,
                               reason="Episode already complete"),
                 done=True,
                 info={"error": "Episode already complete"},
