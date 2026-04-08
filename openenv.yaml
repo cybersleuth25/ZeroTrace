@@ -35,8 +35,8 @@ observation_space:
       type: integer
     reward:
       type: float
-      min: 0.01
-      max: 0.99
+      min: 0
+      max: 1
     done:
       type: boolean
     conversation_history:
@@ -71,13 +71,13 @@ reward_space:
   fields:
     value:
       type: float
-      min: 0.01
-      max: 0.99
+      min: 0
+      max: 1
       exclusive: true
     partial_credit:
       type: float
-      min: 0.01
-      max: 0.99
+      min: 0
+      max: 1
     penalty:
       type: float
       min: -1.0
@@ -93,7 +93,7 @@ tasks:
     description: "Fix a function that crashes on missing dict keys"
     grader: environment.test_runner.grade_level1
     max_steps: 15
-    reward_range: [0.01, 0.99]
+    reward_range: [0, 1]
 
   - id: level2_resource_leak
     name: "Fix resource leak"
@@ -101,7 +101,7 @@ tasks:
     description: "Fix an unclosed file handle with a context manager"
     grader: environment.test_runner.grade_level2
     max_steps: 15
-    reward_range: [0.01, 0.99]
+    reward_range: [0, 1]
 
   - id: level3_race_condition
     name: "Fix race condition"
@@ -109,7 +109,7 @@ tasks:
     description: "Fix thread-unsafe counter with a Lock"
     grader: environment.test_runner.grade_level3
     max_steps: 15
-    reward_range: [0.01, 0.99]
+    reward_range: [0, 1]
 
   # PyTorch
   - id: torch_dtype_mismatch
@@ -118,7 +118,7 @@ tasks:
     description: "Fix CrossEntropyLoss dtype error (Float vs Long targets)"
     grader: environment.test_runner.grade_level4
     max_steps: 15
-    reward_range: [0.01, 0.99]
+    reward_range: [0, 1]
 
   - id: torch_nan_gradient
     name: "Fix PyTorch NaN gradient"
@@ -126,7 +126,7 @@ tasks:
     description: "Fix log(0) causing NaN in custom cross-entropy"
     grader: environment.test_runner.grade_level5
     max_steps: 15
-    reward_range: [0.01, 0.99]
+    reward_range: [0, 1]
 
   - id: torch_wrong_dim
     name: "Fix PyTorch softmax dimension"
@@ -134,7 +134,7 @@ tasks:
     description: "Fix softmax(dim=0) to dim=-1 in scaled dot-product attention"
     grader: environment.test_runner.grade_level6
     max_steps: 15
-    reward_range: [0.01, 0.99]
+    reward_range: [0, 1]
 
   - id: torch_ddp_batch
     name: "Fix DDP Batch Shape"
@@ -142,7 +142,7 @@ tasks:
     description: "Fix a distributed data parallel batch shape bug in a PyTorch model"
     grader: environment.test_runner.grade_level7
     max_steps: 15
-    reward_range: [0.01, 0.99]
+    reward_range: [0, 1]
 
 endpoints:
   reset:
