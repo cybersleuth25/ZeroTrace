@@ -51,11 +51,15 @@ LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
 BASE = os.getenv("ZEROTRACE_BASE_URL", "http://localhost:7860")
 
-# Tasks to run
+# Tasks to run — must match ALL tasks in openenv.yaml
 TASKS: List[str] = [
     "level1_keyerror",
     "level2_resource_leak",
     "level3_race_condition",
+    "torch_dtype_mismatch",
+    "torch_nan_gradient",
+    "torch_wrong_dim",
+    "torch_ddp_batch",
 ]
 
 MAX_STEPS = 15
