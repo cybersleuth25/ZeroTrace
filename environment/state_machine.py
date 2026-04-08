@@ -4,6 +4,7 @@ Manages the state of a code repair episode, tracking progress,
 computing rewards, replay logs, and multi-turn conversation history.
 """
 
+import math
 from typing import Any, Dict, List, Optional
 
 from security.scanner import scan_code
@@ -22,12 +23,14 @@ _HISTORY_WINDOW = 5
 # ---------------------------------------------------------------------------
 
 def _clamp_reward_score(v: float) -> float:
-    """Clamp a score/partial_credit to (0, 1) exclusive."""
-    if v <= 0.0:
+    """Clamp a score/partial_credit to (0, 1) exclusive.
+
+    Clamps BEFORE rounding so round() cannot push to boundary.
+    """
+    if not math.isfinite(v):
         return 0.01
-    if v >= 1.0:
-        return 0.99
-    return round(v, 4)
+    clamped = max(0.01, min(0.99, v))
+    return round(clamped, 4)
 
 
 def compute_reward(
@@ -267,7 +270,7 @@ class EpisodeState:
             prev_passed=self.prev_passed,
             code=self.current_code,
         )
-        self.cumulative_reward = max(-1.0, min(1.0, reward.value))
+        self.cumulative_reward = _clamp_reward_score(reward.value)
 
         # ── Update history & replay ─────────────────────────────────────────
         self._history.append({

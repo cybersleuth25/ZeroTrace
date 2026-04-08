@@ -2,8 +2,10 @@
 
 Each grader returns a dict with passed, failed, total, details, score.
 Levels 1-3: classic Python bugs.
-Levels 4-6: PyTorch-specific bugs (gracefully skips run-tests if torch absent).
+Levels 4-7: PyTorch-specific bugs (gracefully skips run-tests if torch absent).
 """
+
+import math
 
 import os
 import re
@@ -17,12 +19,13 @@ def _clamp_score(score: float) -> float:
     """Clamp score to the open interval (0, 1).
 
     The OpenEnv validator requires *strictly* 0 < score < 1.
+    We clamp BEFORE rounding so that round() can never push a
+    boundary value back to exactly 0.0 or 1.0.
     """
-    if score <= 0.0:
+    if not math.isfinite(score):
         return 0.01
-    if score >= 1.0:
-        return 0.99
-    return round(score, 4)
+    clamped = max(0.01, min(0.99, score))
+    return round(clamped, 4)
 
 
 # ---------------------------------------------------------------------------
@@ -38,6 +41,7 @@ def run_tests(level: int, patched_code: str) -> Dict[str, Any]:
         4: _run_level4_tests,
         5: _run_level5_tests,
         6: _run_level6_tests,
+        7: _run_level6_tests,  # level 7 reuses level 6 grader
     }
     fn = dispatch.get(level)
     if fn is None:
@@ -81,6 +85,9 @@ def grade_level5(code: str) -> float:
     return _safe_grade(_run_level5_tests, code)
 
 def grade_level6(code: str) -> float:
+    return _safe_grade(_run_level6_tests, code)
+
+def grade_level7(code: str) -> float:
     return _safe_grade(_run_level6_tests, code)
 
 

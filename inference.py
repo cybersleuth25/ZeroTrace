@@ -13,6 +13,7 @@ Optional:
   ZEROTRACE_BASE_URL : Base URL of the running app.py (default: http://localhost:7860)
 """
 
+import math
 import os
 import sys
 import json
@@ -28,12 +29,14 @@ load_dotenv()
 
 
 def _clamp(v: float) -> float:
-    """Clamp a score to the open interval (0, 1)."""
-    if v <= 0.0:
+    """Clamp a score to the open interval (0, 1).
+
+    Clamps BEFORE rounding so round() cannot push to boundary.
+    """
+    if not math.isfinite(v):
         return 0.01
-    if v >= 1.0:
-        return 0.99
-    return round(v, 4)
+    clamped = max(0.01, min(0.99, v))
+    return round(clamped, 4)
 
 # ---------------------------------------------------------------------------
 # Configuration (uses the MANDATORY hackathon env vars)

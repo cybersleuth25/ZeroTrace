@@ -65,10 +65,13 @@ def save_result(
         reward:  Final reward value in [-1.0, 1.0].
         steps:   Number of steps taken to complete the episode.
     """
+    import math
+    if not math.isfinite(reward):
+        reward = 0.01
     entry: Dict[str, Any] = {
         "model": model,
         "task_id": task_id,
-        "reward": round(float(reward), 4),
+        "reward": round(max(0.01, min(0.99, float(reward))), 4),
         "steps": int(steps),
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
