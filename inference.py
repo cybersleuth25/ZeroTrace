@@ -62,7 +62,11 @@ TASKS: List[str] = [
     "torch_ddp_batch",
 ]
 
-MAX_STEPS = 15
+MAX_STEPS = 8                # Reduced from 15 — must finish within time budget
+GLOBAL_TIMEOUT_S = 25 * 60   # 25 minutes hard cap (5 min buffer before 30 min kill)
+PER_TASK_TIMEOUT_S = 200     # ~3.3 minutes per task
+LLM_TIMEOUT_S = 60           # 60s per LLM call
+LLM_MAX_TOKENS = 1024        # Reduced from 1500 for faster responses
 VALID_ACTIONS = {
     "INSPECT_ERROR", "EDIT_CODE", "RUN_COMPILER",
     "EXECUTE_UNIT_TEST", "QUERY_CONTEXT", "SUBMIT_FIX",
@@ -154,8 +158,41 @@ def build_system_prompt() -> str:
         "- SUBMIT_FIX: Submit final fix (include patched_code)\n\n"
         "## Strategy\n"
         "1. INSPECT_ERROR -> 2. EDIT_CODE -> 3. EXECUTE_UNIT_TEST -> 4. SUBMIT_FIX\n"
-        "Include the COMPLETE file in patched_code, not just a diff."
+        "Include the COMPLETE file in patched_code, not just a diff.\n"
+        "Be concise. Act quickly."
     )
+
+
+# ---------------------------------------------------------------------------
+# LLM call with timeout and single retry
+# ---------------------------------------------------------------------------
+
+def _call_llm(client: OpenAI, messages: list) -> str:
+    """Call the LLM with timeout and one retry on transient failure."""
+    for attempt in range(2):
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=messages,
+                max_tokens=LLM_MAX_TOKENS,
+                timeout=LLM_TIMEOUT_S,
+            )
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            err = str(e)
+            # Fatal errors — don't retry
+            if "402" in err or "payment required" in err.lower():
+                raise RuntimeError("402 Payment Required. Add billing or use a smaller model.") from e
+            if "401" in err or "unauthorized" in err.lower():
+                raise RuntimeError("401 Unauthorized. Check HF_TOKEN.") from e
+            # Transient error — retry once after brief backoff
+            if attempt == 0:
+                print(f"LLM transient error (retrying in 2s): {err[:120]}")
+                time.sleep(2)
+            else:
+                print(f"LLM Error (giving up): {err[:120]}")
+                return ""
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -188,11 +225,26 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
     )
 
     results: Dict[str, Dict[str, Any]] = {}
+    global_start = time.monotonic()
 
     for task_id in TASKS:
 
+        # ── Global time budget check ───────────────────────────────
+        elapsed_global = time.monotonic() - global_start
+        if elapsed_global >= GLOBAL_TIMEOUT_S:
+            print(f"[BUDGET] Global timeout reached ({elapsed_global:.0f}s). Skipping remaining tasks.")
+            for remaining_id in TASKS[TASKS.index(task_id):]:
+                if remaining_id not in results:
+                    results[remaining_id] = {
+                        "reward": 0.01, "steps": 0,
+                        "error": "Global timeout",
+                        "step_rewards": [0.01], "success": False,
+                    }
+            break
+
         # ── [START] log ────────────────────────────────────────────
         print(f"[START] task={task_id} env=zerotrace model={MODEL_NAME}")
+        task_start = time.monotonic()
 
         try:
             # Reset episode
@@ -215,27 +267,24 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
             for step_num in range(MAX_STEPS):
                 steps = step_num + 1
 
+                # ── Per-task time budget check ─────────────────────
+                task_elapsed = time.monotonic() - task_start
+                if task_elapsed >= PER_TASK_TIMEOUT_S:
+                    print(f"[BUDGET] Task {task_id} timeout ({task_elapsed:.0f}s). Moving on.")
+                    break
+
+                # ── Global time budget check (inner) ───────────────
+                if (time.monotonic() - global_start) >= GLOBAL_TIMEOUT_S:
+                    print(f"[BUDGET] Global timeout during {task_id}. Breaking.")
+                    break
+
                 # Build messages (multi-turn)
                 messages = [{"role": "system", "content": build_system_prompt()}]
                 messages += conv_messages[-10:]   # last 5 turns
                 messages.append({"role": "user", "content": json.dumps(obs, indent=2)})
 
-                # ── LLM call via OpenAI Client ─────────────────────
-                try:
-                    response = client.chat.completions.create(
-                        model=MODEL_NAME,
-                        messages=messages,
-                        max_tokens=1500,
-                    )
-                    text = response.choices[0].message.content or ""
-                except Exception as e:
-                    err = str(e)
-                    if "402" in err or "payment required" in err.lower():
-                        raise RuntimeError("402 Payment Required. Add billing or use a smaller model.") from e
-                    if "401" in err or "unauthorized" in err.lower():
-                        raise RuntimeError("401 Unauthorized. Check HF_TOKEN.") from e
-                    print(f"LLM Error: {e}")
-                    text = ""
+                # ── LLM call with timeout ──────────────────────────
+                text = _call_llm(client, messages)
 
                 # Update conversation history
                 conv_messages += [
@@ -271,7 +320,7 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
                         "action": action,
                         "model_name": MODEL_NAME,
                     },
-                    timeout=30,
+                    timeout=60,
                 )
                 step_resp.raise_for_status()
                 step_data = step_resp.json()
@@ -298,7 +347,7 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
                     success = (passed == total and total > 0)
                     break
 
-                time.sleep(0.5)
+                # No sleep — removed to save time
 
             results[task_id] = {
                 "reward": _clamp(final_reward),
@@ -319,14 +368,18 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
         rewards_csv = ",".join(
             f"{rw:.2f}" for rw in r.get("step_rewards", [r["reward"]])
         )
+        task_elapsed = time.monotonic() - task_start
         print(
             f"[END] success={str(r.get('success', False)).lower()} "
-            f"steps={r.get('steps', 0)} rewards={rewards_csv}"
+            f"steps={r.get('steps', 0)} rewards={rewards_csv} "
+            f"time={task_elapsed:.1f}s"
         )
 
     # ── Final summary ──────────────────────────────────────────────
+    total_elapsed = time.monotonic() - global_start
     print("\n" + "=" * 60)
     print("=== ZEROTRACE INFERENCE RESULTS ===")
+    print(f"=== Total time: {total_elapsed:.1f}s ===")
     print("=" * 60)
 
     for tid, r in results.items():
