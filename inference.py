@@ -28,11 +28,15 @@ from openai import OpenAI
 load_dotenv()
 
 
-def _clamp(v: float) -> int:
-    """Clamp a score to 0 or 1."""
+def _clamp(v: float) -> float:
+    """Clamp a score to the open interval (0, 1).
+
+    Clamps BEFORE rounding so round() cannot push to boundary.
+    """
     if not math.isfinite(v):
-        return 0
-    return int(round(max(0.0, min(1.0, v))))
+        return 0.01
+    clamped = max(0.01, min(0.99, v))
+    return round(clamped, 4)
 
 # ---------------------------------------------------------------------------
 # Configuration (uses the MANDATORY hackathon env vars)
@@ -197,7 +201,7 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
             obs = reset_resp.json()
 
             steps = 0
-            final_reward = 0
+            final_reward = 0.01
             step_rewards: list = []
             success = False
             force_test = False
@@ -282,7 +286,7 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
                 # ── [STEP] log ─────────────────────────────────────
                 print(
                     f"[STEP] step={steps} action={action['action_type']} "
-                    f"reward={clamped_step_r} done={str(done).lower()} "
+                    f"reward={clamped_step_r:.2f} done={str(done).lower()} "
                     f"error={error_str}"
                 )
 
@@ -302,14 +306,14 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
         except Exception as e:
             print(f"ERROR on {task_id}: {e}")
             results[task_id] = {
-                "reward": 0, "steps": 0, "error": str(e),
-                "step_rewards": [0], "success": False,
+                "reward": 0.01, "steps": 0, "error": str(e),
+                "step_rewards": [0.01], "success": False,
             }
 
         # ── [END] log ──────────────────────────────────────────────
         r = results[task_id]
         rewards_csv = ",".join(
-            f"{rw}" for rw in r.get("step_rewards", [r["reward"]])
+            f"{rw:.2f}" for rw in r.get("step_rewards", [r["reward"]])
         )
         print(
             f"[END] success={str(r.get('success', False)).lower()} "
@@ -322,32 +326,32 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
     print("=" * 60)
 
     for tid, r in results.items():
-        reward = r.get("reward", 0)
+        reward = r.get("reward", 0.01)
         steps = r.get("steps", 0)
         error = r.get("error", "")
         suffix = f"  ERROR: {error}" if error else ""
-        print(f"{tid:<32} Reward: {reward}  Steps: {steps}{suffix}")
+        print(f"{tid:<32} Reward: {reward:.2f}  Steps: {steps}{suffix}")
 
     valid_rewards = [r["reward"] for r in results.values() if "error" not in r]
-    mean = sum(valid_rewards) / len(valid_rewards) if valid_rewards else 0
+    mean = sum(valid_rewards) / len(valid_rewards) if valid_rewards else 0.01
     print(f"\nMean Reward: {mean:.4f}")
 
-    # Validation — scores must be either 0 or 1
+    # Validation — scores must be strictly inside (0, 1)
     print("\n" + "=" * 60)
     print("VALIDATION")
     print("=" * 60)
     all_valid = True
     for tid, r in results.items():
-        rw = r.get("reward", 0)
-        ok = rw in [0, 1]
+        rw = r.get("reward", 0.01)
+        ok = 0.0 < rw < 1.0
         if not ok:
             all_valid = False
-        print(f"{'OK' if ok else 'FAIL'}: {tid} reward {rw}")
+        print(f"{'OK' if ok else 'FAIL'}: {tid} reward {rw:.2f}")
 
     if all_valid:
-        print("\nValidation PASSED: All rewards are strictly 0 or 1")
+        print("\nValidation PASSED: All rewards strictly in (0, 1)")
     else:
-        print("\nValidation FAILED: Rewards must be exactly 0 or 1")
+        print("\nValidation FAILED: Rewards out of range (0, 1)")
         sys.exit(1)
 
     return results

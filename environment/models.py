@@ -25,8 +25,8 @@ class Observation(BaseModel):
         description="Results from running unit tests",
     )
     step_count: int = Field(default=0, ge=0, description="Current step number")
-    reward: int = Field(
-        default=0, ge=0, le=1, description="Cumulative reward"
+    reward: float = Field(
+        default=0.01, gt=0.0, lt=1.0, description="Cumulative reward"
     )
     done: bool = Field(default=False, description="Whether the episode is complete")
     # Multi-turn memory: last N conversation turns for the agent
@@ -62,12 +62,12 @@ class Action(BaseModel):
 class Reward(BaseModel):
     """Structured reward signal."""
 
-    value: int = Field(..., ge=0, le=1, description="Total reward value")
-    partial_credit: int = Field(
-        default=0, ge=0, le=1, description="Credit for partial test passes"
+    value: float = Field(..., gt=0.0, lt=1.0, description="Total reward value")
+    partial_credit: float = Field(
+        default=0.01, gt=0.0, lt=1.0, description="Credit for partial test passes"
     )
-    penalty: int = Field(
-        default=0, ge=-1, le=0, description="Penalty for bad behaviour"
+    penalty: float = Field(
+        default=0.0, ge=-1.0, le=0.0, description="Penalty for bad behaviour"
     )
     reason: str = Field(..., description="Explanation of the reward")
 

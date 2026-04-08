@@ -15,11 +15,17 @@ from typing import Any, Dict, List
 from .sandbox import run_code_safely, check_syntax
 
 
-def _clamp_score(score: float) -> int:
-    """Return score as 0 or 1 (no decimal points)."""
+def _clamp_score(score: float) -> float:
+    """Clamp score to the open interval (0, 1).
+
+    The OpenEnv validator requires *strictly* 0 < score < 1.
+    We clamp BEFORE rounding so that round() can never push a
+    boundary value back to exactly 0.0 or 1.0.
+    """
     if not math.isfinite(score):
-        return 0
-    return int(round(max(0.0, min(1.0, score))))
+        return 0.01
+    clamped = max(0.01, min(0.99, score))
+    return round(clamped, 4)
 
 
 # ---------------------------------------------------------------------------
@@ -40,48 +46,48 @@ def run_tests(level: int, patched_code: str) -> Dict[str, Any]:
     fn = dispatch.get(level)
     if fn is None:
         return {"passed": 0, "failed": 0, "total": 0,
-                "details": [f"Unknown level: {level}"], "score": 0}
+                "details": [f"Unknown level: {level}"], "score": 0.01}
     try:
         result = fn(patched_code)
         result["score"] = _clamp_score(result.get("score", 0.0))
         return result
     except Exception as e:
         return {"passed": 0, "failed": 0, "total": 0,
-                "details": [f"Grader error: {e}"], "score": 0}
+                "details": [f"Grader error: {e}"], "score": 0.01}
 
 
 # ---------------------------------------------------------------------------
 # Convenience grade functions (return 0.0-1.0 float)
 # ---------------------------------------------------------------------------
 
-def _safe_grade(fn, code: str) -> int:
-    """Run a grader function and guarantee the result is in 0 or 1."""
+def _safe_grade(fn, code: str) -> float:
+    """Run a grader function and guarantee the result is in (0, 1)."""
     try:
         result = fn(code)
         return _clamp_score(result.get("score", 0.0))
     except Exception:
-        return 0
+        return 0.01
 
 
-def grade_level1(code: str) -> int:
+def grade_level1(code: str) -> float:
     return _safe_grade(_run_level1_tests, code)
 
-def grade_level2(code: str) -> int:
+def grade_level2(code: str) -> float:
     return _safe_grade(_run_level2_tests, code)
 
-def grade_level3(code: str) -> int:
+def grade_level3(code: str) -> float:
     return _safe_grade(_run_level3_tests, code)
 
-def grade_level4(code: str) -> int:
+def grade_level4(code: str) -> float:
     return _safe_grade(_run_level4_tests, code)
 
-def grade_level5(code: str) -> int:
+def grade_level5(code: str) -> float:
     return _safe_grade(_run_level5_tests, code)
 
-def grade_level6(code: str) -> int:
+def grade_level6(code: str) -> float:
     return _safe_grade(_run_level6_tests, code)
 
-def grade_level7(code: str) -> int:
+def grade_level7(code: str) -> float:
     return _safe_grade(_run_level6_tests, code)
 
 
@@ -96,7 +102,7 @@ def _syntax_gate(patched_code: str, total: int) -> Dict[str, Any]:
         return {
             "passed": 0, "failed": total, "total": total,
             "details": [f"SyntaxError at line {syntax['line']}: {syntax['error']}"],
-            "score": 0,
+            "score": 0.01,
         }
     return {}  # empty = OK
 
@@ -193,7 +199,7 @@ def _run_level2_tests(patched_code: str) -> Dict[str, Any]:
             temp_path = f.name
     except Exception as e:
         return {"passed": 0, "failed": total, "total": total,
-                "details": [f"Setup error: {e}"], "score": 0}
+                "details": [f"Setup error: {e}"], "score": 0.01}
 
     try:
         t1 = f'''
