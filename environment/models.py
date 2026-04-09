@@ -12,7 +12,7 @@ class Observation(BaseModel):
     """What the agent sees at each step."""
 
     task_id: str = Field(..., description="Unique identifier for the current task")
-    level: int = Field(..., ge=1, le=6, description="Difficulty level (1-6)")
+    level: int = Field(..., ge=1, le=7, description="Difficulty level (1-7)")
     buggy_code: str = Field(..., description="The current code being worked on")
     terminal_output: str = Field(default="", description="Output from last action")
     test_results: Dict[str, Any] = Field(
