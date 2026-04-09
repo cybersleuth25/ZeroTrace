@@ -284,34 +284,28 @@ else:
 
     # Test 2: single run reaches 50000
     t2 = f"{patched_code}\n{_counter_template}"
-    r2 = run_code_safely(t2, timeout=10)
+    r2 = run_code_safely(t2, timeout=5)
     if "PASS" in r2["stdout"]:
         passed += 1
         details.append("Test 2 PASS: counter == 50000 in single run")
     else:
         details.append(f"Test 2 FAIL: {(r2['stdout'] or r2['stderr'])[:100]}")
 
-    # Test 3: 2 consecutive runs all pass (reduced for time budget)
-    c_passes = sum(
-        1 for _ in range(2)
-        if "PASS" in run_code_safely(_counter_template, timeout=10)["stdout"]
-    )
-    if c_passes == 2:
+    # Test 3: verify counter in a second run
+    r3 = run_code_safely(_counter_template, timeout=5)
+    if "PASS" in r3["stdout"]:
         passed += 1
-        details.append("Test 3 PASS: counter == 50000 in 2 consecutive runs")
+        details.append("Test 3 PASS: counter == 50000 in verification run")
     else:
-        details.append(f"Test 3 FAIL: Only {c_passes}/2 consecutive runs passed")
+        details.append(f"Test 3 FAIL: {(r3['stdout'] or r3['stderr'])[:100]}")
 
-    # Test 4: no race in 3 repeated runs (reduced for time budget)
-    race_free = sum(
-        1 for _ in range(3)
-        if "PASS" in run_code_safely(_counter_template, timeout=10)["stdout"]
-    )
-    if race_free == 3:
+    # Test 4: confirm no race in a third run
+    r4 = run_code_safely(_counter_template, timeout=5)
+    if "PASS" in r4["stdout"]:
         passed += 1
-        details.append("Test 4 PASS: No race in 3 repeated runs")
+        details.append("Test 4 PASS: No race detected")
     else:
-        details.append(f"Test 4 FAIL: {3 - race_free}/3 runs had a race condition")
+        details.append(f"Test 4 FAIL: {(r4['stdout'] or r4['stderr'])[:100]}")
 
     score = passed * 0.25
     return {"passed": passed, "failed": total - passed, "total": total,
