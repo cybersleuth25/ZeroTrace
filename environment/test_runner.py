@@ -284,7 +284,7 @@ else:
 
     # Test 2: single run reaches 50000
     t2 = f"{patched_code}\n{_counter_template}"
-    r2 = run_code_safely(t2, timeout=5)
+    r2 = run_code_safely(t2, timeout=3)
     if "PASS" in r2["stdout"]:
         passed += 1
         details.append("Test 2 PASS: counter == 50000 in single run")
@@ -292,7 +292,7 @@ else:
         details.append(f"Test 2 FAIL: {(r2['stdout'] or r2['stderr'])[:100]}")
 
     # Test 3: verify counter in a second run
-    r3 = run_code_safely(_counter_template, timeout=5)
+    r3 = run_code_safely(_counter_template, timeout=3)
     if "PASS" in r3["stdout"]:
         passed += 1
         details.append("Test 3 PASS: counter == 50000 in verification run")
@@ -300,7 +300,7 @@ else:
         details.append(f"Test 3 FAIL: {(r3['stdout'] or r3['stderr'])[:100]}")
 
     # Test 4: confirm no race in a third run
-    r4 = run_code_safely(_counter_template, timeout=5)
+    r4 = run_code_safely(_counter_template, timeout=3)
     if "PASS" in r4["stdout"]:
         passed += 1
         details.append("Test 4 PASS: No race detected")
@@ -370,7 +370,7 @@ except RuntimeError as e:
 except Exception as e:
     print(f"Error: {{type(e).__name__}}: {{e}}")
 '''
-    r3 = run_code_safely(t3, timeout=30)
+    r3 = run_code_safely(t3, timeout=10)
     if "TEST3_PASS" in r3["stdout"]:
         passed += 1
         details.append("Test 3 PASS: compute_classification_loss runs without error")
@@ -433,7 +433,7 @@ except ImportError:
 except Exception as e:
     print(f"Error: {{type(e).__name__}}: {{e}}")
 '''
-    r3 = run_code_safely(t3, timeout=30)
+    r3 = run_code_safely(t3, timeout=10)
     if "TEST3_PASS" in r3["stdout"]:
         passed += 1
         details.append("Test 3 PASS: Loss is finite (no NaN / inf)")
@@ -509,7 +509,7 @@ except ImportError:
 except Exception as e:
     print(f"Error: {{type(e).__name__}}: {{e}}")
 '''
-    r3 = run_code_safely(t3, timeout=30)
+    r3 = run_code_safely(t3, timeout=10)
     if "TEST3_PASS" in r3["stdout"]:
         passed += 1
         details.append("Test 3 PASS: Attention output matches reference implementation")

@@ -14,7 +14,7 @@ from typing import Any, Dict
 _MAX_CODE_LENGTH = 50_000  # chars — hard cap before we even write a temp file
 
 
-def run_code_safely(code: str, timeout: int = 10) -> Dict[str, Any]:
+def run_code_safely(code: str, timeout: int = 5) -> Dict[str, Any]:
     """Run Python code safely in a subprocess.
 
     Args:
