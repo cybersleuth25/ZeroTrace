@@ -171,10 +171,9 @@ except Exception as e:
     else:
         details.append(f"Test 3 FAIL: {(r3['stderr'] or r3['stdout'])[:120]}")
 
-    weights = [0.33, 0.33, 0.34]
-    score = sum(w for i, w in enumerate(weights) if i < passed)
+    score = 0.99 if passed == total else 0.01
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": _clamp_score(score)}
+            "details": details, "score": score}
 
 
 # ---------------------------------------------------------------------------
@@ -234,10 +233,9 @@ print("TEST1_PASS")
     else:
         details.append("Test 3 FAIL: Explicit .close() found — use context manager")
 
-    weights = [0.34, 0.33, 0.33]
-    score = sum(w for i, w in enumerate(weights) if i < passed)
+    score = 0.99 if passed == total else 0.01
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": _clamp_score(score)}
+            "details": details, "score": score}
 
 
 # ---------------------------------------------------------------------------
@@ -307,9 +305,9 @@ else:
     else:
         details.append(f"Test 4 FAIL: {(r4['stdout'] or r4['stderr'])[:100]}")
 
-    score = passed * 0.25
+    score = 0.99 if passed == total else 0.01
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": _clamp_score(score)}
+            "details": details, "score": score}
 
 
 # ---------------------------------------------------------------------------
@@ -377,10 +375,9 @@ except Exception as e:
     else:
         details.append(f"Test 3 FAIL: {(r3['stderr'] or r3['stdout'])[:150]}")
 
-    weights = [0.34, 0.33, 0.33]
-    score = sum(w for i, w in enumerate(weights) if i < passed)
+    score = 0.99 if passed == total else 0.01
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": _clamp_score(score)}
+            "details": details, "score": score}
 
 
 # ---------------------------------------------------------------------------
@@ -440,10 +437,9 @@ except Exception as e:
     else:
         details.append(f"Test 3 FAIL: {(r3['stderr'] or r3['stdout'])[:150]}")
 
-    weights = [0.34, 0.33, 0.33]
-    score = sum(w for i, w in enumerate(weights) if i < passed)
+    score = 0.99 if passed == total else 0.01
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": _clamp_score(score)}
+            "details": details, "score": score}
 
 
 # ---------------------------------------------------------------------------
@@ -516,7 +512,6 @@ except Exception as e:
     else:
         details.append(f"Test 3 FAIL: {(r3['stderr'] or r3['stdout'])[:150]}")
 
-    weights = [0.34, 0.33, 0.33]
-    score = sum(w for i, w in enumerate(weights) if i < passed)
+    score = 0.99 if passed == total else 0.01
     return {"passed": passed, "failed": total - passed, "total": total,
-            "details": details, "score": _clamp_score(score)}
+            "details": details, "score": score}

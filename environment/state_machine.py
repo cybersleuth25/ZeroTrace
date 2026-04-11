@@ -40,49 +40,20 @@ def compute_reward(
     prev_passed: int,
     code: str,
 ) -> Reward:
-    """Compute reward based on action and test results.
+    """Compute reward — binary pass/fail.
 
     Returns:
-        Reward object with value, partial_credit, penalty, reason.
+        0.99 if ALL tests pass, 0.01 otherwise. No partial credit.
     """
     passed = test_results.get("passed", 0)
     total = test_results.get("total", 0)
-    partial = passed / total if total > 0 else 0.0
-    penalty = -((step_count - 1) * 0.02) # Linear speed decay
-    reason = ""
 
-    # Penalties
-    if action_type == "SUBMIT_FIX" and passed < total:
-        penalty -= 0.3
-        reason = "Submitted fix with failing tests"
-
-    elif action_type == "RUN_COMPILER":
-        syntax = check_syntax(code)
-        if syntax["valid"]:
-            penalty -= 0.1
-            reason = "Ran compiler when no syntax error present"
-        else:
-            reason = "Compiler check found syntax error"
-
-    # Full reward when all tests pass
     if passed == total and total > 0:
         return Reward(value=0.99, partial_credit=0.99, penalty=0.0,
                       reason="All tests pass")
 
-    # Progress reward
-    if passed > prev_passed and not reason:
-        partial = round(passed / total, 2) if total > 0 else 0.0
-        reason = f"Progress: {passed}/{total} tests passing"
-
-    if not reason:
-        reason = "No tests passing yet" if passed == 0 else f"{passed}/{total} tests passing"
-
-    value = round(max(-1.0, min(1.0, partial + penalty)), 3)
-    # Clamp value and partial_credit to open interval (0, 1)
-    clamped_value = _clamp_reward_score(value)
-    clamped_partial = _clamp_reward_score(partial)
-    return Reward(value=clamped_value, partial_credit=clamped_partial,
-                  penalty=round(penalty, 2), reason=reason)
+    return Reward(value=0.01, partial_credit=0.01, penalty=0.0,
+                  reason=f"Tests failing: {passed}/{total}")
 
 
 # ---------------------------------------------------------------------------
