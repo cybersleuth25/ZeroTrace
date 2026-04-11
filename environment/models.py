@@ -4,8 +4,20 @@ These models define the observation space, action space, and reward structure
 for the OpenEnv-compliant autonomous code repair benchmark.
 """
 
-from pydantic import BaseModel, Field
+import math
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Any, Dict, List, Literal, Optional
+
+
+def _force_clamp(v: float) -> float:
+    """Force a float into the strict open interval (0, 1).
+
+    This is the LAST line of defence — every reward/score value
+    passes through here before it can leave the system.
+    """
+    if v is None or not math.isfinite(v):
+        return 0.01
+    return round(max(0.01, min(0.99, float(v))), 4)
 
 
 class Observation(BaseModel):
@@ -21,12 +33,13 @@ class Observation(BaseModel):
             "failed": 0,
             "total": 0,
             "details": [],
+            "score": 0.01,
         },
         description="Results from running unit tests",
     )
     step_count: int = Field(default=0, ge=0, description="Current step number")
     reward: float = Field(
-        default=0.01, gt=0.0, lt=1.0, description="Cumulative reward"
+        default=0.01, description="Cumulative reward"
     )
     done: bool = Field(default=False, description="Whether the episode is complete")
     # Multi-turn memory: last N conversation turns for the agent
@@ -34,6 +47,20 @@ class Observation(BaseModel):
         default_factory=list,
         description="Recent conversation history for multi-turn memory",
     )
+
+    @field_validator("reward", mode="before")
+    @classmethod
+    def clamp_reward(cls, v: Any) -> float:
+        """Guarantee reward is strictly in (0, 1)."""
+        return _force_clamp(v)
+
+    @model_validator(mode="after")
+    def clamp_test_results_score(self) -> "Observation":
+        """Guarantee test_results.score is strictly in (0, 1)."""
+        if isinstance(self.test_results, dict):
+            raw = self.test_results.get("score", 0.01)
+            self.test_results["score"] = _force_clamp(raw)
+        return self
 
 
 class Action(BaseModel):
@@ -62,14 +89,20 @@ class Action(BaseModel):
 class Reward(BaseModel):
     """Structured reward signal."""
 
-    value: float = Field(..., gt=0.0, lt=1.0, description="Total reward value")
+    value: float = Field(default=0.01, description="Total reward value")
     partial_credit: float = Field(
-        default=0.01, gt=0.0, lt=1.0, description="Credit for partial test passes"
+        default=0.01, description="Credit for partial test passes"
     )
     penalty: float = Field(
         default=0.0, ge=-1.0, le=0.0, description="Penalty for bad behaviour"
     )
     reason: str = Field(..., description="Explanation of the reward")
+
+    @field_validator("value", "partial_credit", mode="before")
+    @classmethod
+    def clamp_scores(cls, v: Any) -> float:
+        """Guarantee value and partial_credit are strictly in (0, 1)."""
+        return _force_clamp(v)
 
 
 class StepResult(BaseModel):
