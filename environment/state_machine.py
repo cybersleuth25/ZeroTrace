@@ -23,14 +23,10 @@ _HISTORY_WINDOW = 5
 # ---------------------------------------------------------------------------
 
 def _clamp_reward_score(v: float) -> float:
-    """Clamp a score/partial_credit to (0, 1) exclusive.
-
-    Clamps BEFORE rounding so round() cannot push to boundary.
-    """
+    """Keep for backward compat — now just returns 1 or 0."""
     if not math.isfinite(v):
-        return 0.01
-    clamped = max(0.01, min(0.99, v))
-    return round(clamped, 4)
+        return 0
+    return 1 if v >= 1.0 else 0
 
 
 def compute_reward(
@@ -40,19 +36,15 @@ def compute_reward(
     prev_passed: int,
     code: str,
 ) -> Reward:
-    """Compute reward — binary pass/fail.
-
-    Returns:
-        0.99 if ALL tests pass, 0.01 otherwise. No partial credit.
-    """
+    """Compute reward — binary pass/fail. 1 or 0."""
     passed = test_results.get("passed", 0)
     total = test_results.get("total", 0)
 
     if passed == total and total > 0:
-        return Reward(value=0.99, partial_credit=0.99, penalty=0.0,
+        return Reward(value=1, partial_credit=1, penalty=0.0,
                       reason="All tests pass")
 
-    return Reward(value=0.01, partial_credit=0.01, penalty=0.0,
+    return Reward(value=0, partial_credit=0, penalty=0.0,
                   reason=f"Tests failing: {passed}/{total}")
 
 

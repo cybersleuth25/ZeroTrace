@@ -46,14 +46,14 @@ def run_tests(level: int, patched_code: str) -> Dict[str, Any]:
     fn = dispatch.get(level)
     if fn is None:
         return {"passed": 0, "failed": 0, "total": 0,
-                "details": [f"Unknown level: {level}"], "score": 0.01}
+                "details": [f"Unknown level: {level}"], "score": 0}
     try:
         result = fn(patched_code)
-        result["score"] = _clamp_score(result.get("score", 0.0))
+        result["score"] = result.get("score", 0)
         return result
     except Exception as e:
         return {"passed": 0, "failed": 0, "total": 0,
-                "details": [f"Grader error: {e}"], "score": 0.01}
+                "details": [f"Grader error: {e}"], "score": 0}
 
 
 # ---------------------------------------------------------------------------
@@ -61,12 +61,12 @@ def run_tests(level: int, patched_code: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def _safe_grade(fn, code: str) -> float:
-    """Run a grader function and guarantee the result is in (0, 1)."""
+    """Run a grader function. Returns 1 (pass) or 0 (fail)."""
     try:
         result = fn(code)
-        return _clamp_score(result.get("score", 0.0))
+        return result.get("score", 0)
     except Exception:
-        return 0.01
+        return 0
 
 
 def grade_level1(code: str) -> float:
@@ -102,7 +102,7 @@ def _syntax_gate(patched_code: str, total: int) -> Dict[str, Any]:
         return {
             "passed": 0, "failed": total, "total": total,
             "details": [f"SyntaxError at line {syntax['line']}: {syntax['error']}"],
-            "score": 0.01,
+            "score": 0,
         }
     return {}  # empty = OK
 
@@ -171,7 +171,7 @@ except Exception as e:
     else:
         details.append(f"Test 3 FAIL: {(r3['stderr'] or r3['stdout'])[:120]}")
 
-    score = 0.99 if passed == total else 0.01
+    score = 1 if passed == total else 0
     return {"passed": passed, "failed": total - passed, "total": total,
             "details": details, "score": score}
 
@@ -198,7 +198,7 @@ def _run_level2_tests(patched_code: str) -> Dict[str, Any]:
             temp_path = f.name
     except Exception as e:
         return {"passed": 0, "failed": total, "total": total,
-                "details": [f"Setup error: {e}"], "score": 0.01}
+                "details": [f"Setup error: {e}"], "score": 0}
 
     try:
         t1 = f'''
@@ -233,7 +233,7 @@ print("TEST1_PASS")
     else:
         details.append("Test 3 FAIL: Explicit .close() found — use context manager")
 
-    score = 0.99 if passed == total else 0.01
+    score = 1 if passed == total else 0
     return {"passed": passed, "failed": total - passed, "total": total,
             "details": details, "score": score}
 
@@ -305,7 +305,7 @@ else:
     else:
         details.append(f"Test 4 FAIL: {(r4['stdout'] or r4['stderr'])[:100]}")
 
-    score = 0.99 if passed == total else 0.01
+    score = 1 if passed == total else 0
     return {"passed": passed, "failed": total - passed, "total": total,
             "details": details, "score": score}
 
@@ -375,7 +375,7 @@ except Exception as e:
     else:
         details.append(f"Test 3 FAIL: {(r3['stderr'] or r3['stdout'])[:150]}")
 
-    score = 0.99 if passed == total else 0.01
+    score = 1 if passed == total else 0
     return {"passed": passed, "failed": total - passed, "total": total,
             "details": details, "score": score}
 
@@ -437,7 +437,7 @@ except Exception as e:
     else:
         details.append(f"Test 3 FAIL: {(r3['stderr'] or r3['stdout'])[:150]}")
 
-    score = 0.99 if passed == total else 0.01
+    score = 1 if passed == total else 0
     return {"passed": passed, "failed": total - passed, "total": total,
             "details": details, "score": score}
 
@@ -512,6 +512,6 @@ except Exception as e:
     else:
         details.append(f"Test 3 FAIL: {(r3['stderr'] or r3['stdout'])[:150]}")
 
-    score = 0.99 if passed == total else 0.01
+    score = 1 if passed == total else 0
     return {"passed": passed, "failed": total - passed, "total": total,
             "details": details, "score": score}
