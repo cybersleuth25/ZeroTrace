@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""ZeroTrace Inference Script — Hackathon-compliant edition.
+"""ZeroTrace Inference Script — matches official hackathon reference format.
 
-MUST complete in < 20 minutes on vcpu=2, memory=8gb.
-MUST emit structured [START] / [STEP] / [END] stdout logs.
+Log format (from official sample):
+  [START] task=X env=Y model=Z
+  [STEP] step=N action=X reward=0.00 done=false error=null
+  [END] success=true steps=N score=1.00 rewards=0.00,1.00
 
 Strategy:
   - Single-step per task: LLM reads bug → SUBMIT_FIX immediately
@@ -19,7 +21,7 @@ import json
 import time
 import re
 import threading
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
 from dotenv import load_dotenv
@@ -58,7 +60,8 @@ _wd.start()
 
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
-HF_TOKEN = os.getenv("HF_TOKEN")
+HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+BENCHMARK = "zerotrace"
 
 TASK_IDS: List[str] = [
     "level1_keyerror",
@@ -75,6 +78,31 @@ GLOBAL_TIMEOUT_S = 12 * 60   # 12 min hard cap (8 min buffer to 20min limit)
 PER_TASK_TIMEOUT_S = 90      # 90s per task
 LLM_CALL_TIMEOUT_S = 15      # Hard 15s per LLM call
 LLM_MAX_TOKENS = 500         # Short responses — just the fix
+
+
+# ---------------------------------------------------------------------------
+# Structured logging — matches official reference exactly
+# ---------------------------------------------------------------------------
+
+def log_start(task: str, env: str, model: str) -> None:
+    print(f"[START] task={task} env={env} model={model}", flush=True)
+
+
+def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
+    error_val = error if error else "null"
+    done_val = str(done).lower()
+    print(
+        f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}",
+        flush=True,
+    )
+
+
+def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(
+        f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={rewards_str}",
+        flush=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -288,25 +316,25 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
             print(f"\n[BUDGET] Global timeout ({elapsed:.0f}s). Filling rest with fallbacks.", flush=True)
             for tid in TASK_IDS:
                 if tid not in results:
-                    print(f"[START] task={tid}", flush=True)
+                    log_start(task=tid, env=BENCHMARK, model=MODEL_NAME)
                     try:
                         fast_reset(tid)
                         fb = submit_fallback(tid)
                         results[tid] = fb
                         rw = fb.get("reward", 0)
-                        print(f"[STEP] step=1 action=SUBMIT_FIX reward={rw} done=true", flush=True)
-                        print(f"[END] task={tid} success={fb.get('success', False)} steps=1 reward={rw}", flush=True)
+                        log_step(step=1, action="SUBMIT_FIX", reward=rw, done=True, error=None)
+                        log_end(success=fb.get("success", False), steps=1, score=rw, rewards=[rw])
                     except Exception:
                         results[tid] = {
                             "reward": 0, "steps": 0, "error": "timeout",
                             "step_rewards": [0], "success": False,
                         }
-                        print(f"[STEP] step=0 action=NONE reward=0 done=true", flush=True)
-                        print(f"[END] task={tid} success=false steps=0 reward=0", flush=True)
+                        log_step(step=0, action="NONE", reward=0, done=True, error="timeout")
+                        log_end(success=False, steps=0, score=0, rewards=[0])
             break
 
-        # ── [START] — required structured log ──────────────────────
-        print(f"[START] task={task_id}", flush=True)
+        # ── [START] ────────────────────────────────────────────────
+        log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
         task_start = time.monotonic()
 
         try:
@@ -319,8 +347,8 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
                 fb = submit_fallback(task_id)
                 results[task_id] = fb
                 rw = fb.get("reward", 0)
-                print(f"[STEP] step=1 action=SUBMIT_FIX reward={rw} done=true", flush=True)
-                print(f"[END] task={task_id} success={fb.get('success', False)} steps=1 reward={rw}", flush=True)
+                log_step(step=1, action="SUBMIT_FIX", reward=rw, done=True, error=None)
+                log_end(success=fb.get("success", False), steps=1, score=rw, rewards=[rw])
                 continue
 
             # Build minimal message
@@ -358,43 +386,41 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
                         "step_rewards": [rw],
                         "success": success,
                     }
-
-                    # ── [STEP] — required structured log ───────────
-                    print(f"[STEP] step=1 action=SUBMIT_FIX reward={rw} done={str(done).lower()}", flush=True)
+                    log_step(step=1, action="SUBMIT_FIX", reward=rw, done=done, error=None)
                 else:
-                    # LLM returned text but no usable code — fallback
                     fb = submit_fallback(task_id)
                     results[task_id] = fb
                     rw = fb.get("reward", 0)
-                    print(f"[STEP] step=1 action=SUBMIT_FIX reward={rw} done=true", flush=True)
+                    log_step(step=1, action="SUBMIT_FIX", reward=rw, done=True, error=None)
             else:
-                # LLM failed entirely — fallback
                 fb = submit_fallback(task_id)
                 results[task_id] = fb
                 rw = fb.get("reward", 0)
-                print(f"[STEP] step=1 action=SUBMIT_FIX reward={rw} done=true", flush=True)
+                log_step(step=1, action="SUBMIT_FIX", reward=rw, done=True, error=None)
 
         except Exception as e:
-            print(f"    ERROR: {e}", flush=True)
+            err_msg = str(e)
+            print(f"    ERROR: {err_msg}", flush=True)
             try:
                 fast_reset(task_id)
                 fb = submit_fallback(task_id)
                 results[task_id] = fb
                 rw = fb.get("reward", 0)
-                print(f"[STEP] step=1 action=SUBMIT_FIX reward={rw} done=true", flush=True)
+                log_step(step=1, action="SUBMIT_FIX", reward=rw, done=True, error=err_msg)
             except Exception:
                 results[task_id] = {
-                    "reward": 0, "steps": 0, "error": str(e),
+                    "reward": 0, "steps": 0, "error": err_msg,
                     "step_rewards": [0], "success": False,
                 }
-                print(f"[STEP] step=0 action=NONE reward=0 done=true", flush=True)
+                log_step(step=0, action="NONE", reward=0, done=True, error=err_msg)
 
-        # ── [END] — required structured log ────────────────────────
+        # ── [END] ─────────────────────────────────────────────────
         r = results[task_id]
         rw = r.get("reward", 0)
         ok = r.get("success", False)
         steps = r.get("steps", 0)
-        print(f"[END] task={task_id} success={str(ok).lower()} steps={steps} reward={rw}", flush=True)
+        step_rewards = r.get("step_rewards", [0])
+        log_end(success=ok, steps=steps, score=rw, rewards=step_rewards)
 
     # ── Summary ────────────────────────────────────────────────────
     total = time.monotonic() - global_start
@@ -405,11 +431,11 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
     for tid, r in results.items():
         rw = r.get("reward", 0)
         err = f"  ERR={r['error']}" if r.get("error") else ""
-        print(f"{tid:<32} reward={rw} steps={r.get('steps', 0)}{err}", flush=True)
+        print(f"{tid:<32} reward={rw:.2f} steps={r.get('steps', 0)}{err}", flush=True)
 
     valid = [r["reward"] for r in results.values() if "error" not in r]
     mean = sum(valid) / len(valid) if valid else 0
-    print(f"\nMean: {mean}", flush=True)
+    print(f"\nMean: {mean:.2f}", flush=True)
 
     return results
 
