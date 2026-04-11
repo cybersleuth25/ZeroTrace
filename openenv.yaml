@@ -24,7 +24,7 @@ observation_space:
     level:
       type: integer
       min: 1
-      max: 6
+      max: 7
     buggy_code:
       type: string
     terminal_output:

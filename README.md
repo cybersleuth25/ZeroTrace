@@ -19,7 +19,7 @@ tags:
 
 An autonomous benchmark for self-healing code and logic repair.
 A language model agent diagnoses and patches real Python and PyTorch bugs,
-verified by hidden unit tests across six difficulty levels.
+verified by hidden unit tests across seven difficulty levels.
 
 Built for the [Meta PyTorch Hackathon](https://pytorch.devpost.com/).
 
@@ -77,12 +77,16 @@ Tested with `Qwen/Qwen2.5-72B-Instruct` via `inference.py`:
 
 | Task | Reward | Steps |
 |------|--------|-------|
-| Level 1 -- KeyError | 1.00 | 3 |
-| Level 2 -- Resource leak | 1.00 | 3 |
-| Level 3 -- Race condition | 1.00 | 3 |
-| **Mean** | **1.00** | **3** |
+| Level 1 -- KeyError | 0.99 | 1 |
+| Level 2 -- Resource leak | 0.99 | 1 |
+| Level 3 -- Race condition | 0.99 | 1 |
+| Level 4 -- dtype mismatch | 0.67 | 1 |
+| Level 5 -- NaN gradient | 0.67 | 1 |
+| Level 6 -- softmax dim | 0.67 | 1 |
+| Level 7 -- DDP batch | 0.34 | 1 |
+| **Mean** | **0.76** | **1** |
 
-Scores may vary between runs depending on model non-determinism.
+All scores are strictly within (0, 1). Scores may vary between runs.
 
 ---
 
@@ -177,13 +181,13 @@ The script hits the live server at `http://localhost:7860` (configurable via `ZE
 
 | Signal | Value | Trigger |
 |--------|-------|---------|
-| Full pass | `+1.0` | All tests pass |
+| Full pass | `0.99` | All tests pass |
 | Partial credit | `passed / total` | Some tests pass |
 | Bad submit | `-0.3` | Submitting with failing tests |
 | Unnecessary compiler check | `-0.1` | Running compiler on valid syntax |
-| Efficiency penalty | `-0.05 * (step - 10)` | After step 10 |
+| Efficiency penalty | `-0.02 * (step - 1)` | Per step |
 
-Final reward is clamped to `[-1.0, 1.0]`.
+Final reward is clamped to the open interval `(0.01, 0.99)` — strictly within `(0, 1)`.
 
 ---
 
@@ -229,9 +233,8 @@ ZeroTrace/
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `HF_TOKEN` | Yes | -- | HuggingFace API token |
+| `API_BASE_URL` | No | `https://router.huggingface.co/v1` | LLM API endpoint |
 | `MODEL_NAME` | No | `Qwen/Qwen2.5-72B-Instruct` | Model to use for inference |
-| `ZEROTRACE_BASE_URL` | No | `http://localhost:7860` | Server URL for inference.py |
-| `RUN_TORCH_TASKS` | No | `0` | Set to `1` to include PyTorch tasks in inference |
 
 ---
 
