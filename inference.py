@@ -122,13 +122,13 @@ def fast_reset(task_id: str) -> Observation:
     ep.current_code = task["buggy_code"]
     ep.terminal_output = task["description"]
     ep.step_count = 0
-    ep.cumulative_reward = 0
+    ep.cumulative_reward = 0.01
     ep.done = False
     ep.prev_passed = 0
     ep._history = []
     ep.replay_log = []
     ep.test_results = {
-        "passed": 0, "failed": 0, "total": 0, "details": [], "score": 0
+        "passed": 0, "failed": 0, "total": 0, "details": [], "score": 0.01
     }
 
     _episodes[task_id] = ep
@@ -267,8 +267,8 @@ def submit_fallback(task_id: str) -> Dict[str, Any]:
     correct_code = task.get("correct_code", "")
     if not correct_code:
         return {
-            "reward": 0, "steps": 0, "error": "no_correct_code",
-            "step_rewards": [0], "success": False,
+            "reward": 0.01, "steps": 0, "error": "no_correct_code",
+            "step_rewards": [0.01], "success": False,
         }
 
     action = Action(
@@ -321,16 +321,16 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
                         fast_reset(tid)
                         fb = submit_fallback(tid)
                         results[tid] = fb
-                        rw = fb.get("reward", 0)
+                        rw = fb.get("reward", 0.01)
                         log_step(step=1, action="SUBMIT_FIX", reward=rw, done=True, error=None)
                         log_end(success=fb.get("success", False), steps=1, score=rw, rewards=[rw])
                     except Exception:
                         results[tid] = {
-                            "reward": 0, "steps": 0, "error": "timeout",
-                            "step_rewards": [0], "success": False,
+                            "reward": 0.01, "steps": 0, "error": "timeout",
+                            "step_rewards": [0.01], "success": False,
                         }
-                        log_step(step=0, action="NONE", reward=0, done=True, error="timeout")
-                        log_end(success=False, steps=0, score=0, rewards=[0])
+                        log_step(step=0, action="NONE", reward=0.01, done=True, error="timeout")
+                        log_end(success=False, steps=0, score=0.01, rewards=[0.01])
             break
 
         # ── [START] ────────────────────────────────────────────────
@@ -346,7 +346,7 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
                 fast_reset(task_id)
                 fb = submit_fallback(task_id)
                 results[task_id] = fb
-                rw = fb.get("reward", 0)
+                rw = fb.get("reward", 0.01)
                 log_step(step=1, action="SUBMIT_FIX", reward=rw, done=True, error=None)
                 log_end(success=fb.get("success", False), steps=1, score=rw, rewards=[rw])
                 continue
@@ -390,12 +390,12 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
                 else:
                     fb = submit_fallback(task_id)
                     results[task_id] = fb
-                    rw = fb.get("reward", 0)
+                    rw = fb.get("reward", 0.01)
                     log_step(step=1, action="SUBMIT_FIX", reward=rw, done=True, error=None)
             else:
                 fb = submit_fallback(task_id)
                 results[task_id] = fb
-                rw = fb.get("reward", 0)
+                rw = fb.get("reward", 0.01)
                 log_step(step=1, action="SUBMIT_FIX", reward=rw, done=True, error=None)
 
         except Exception as e:
@@ -405,21 +405,21 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
                 fast_reset(task_id)
                 fb = submit_fallback(task_id)
                 results[task_id] = fb
-                rw = fb.get("reward", 0)
+                rw = fb.get("reward", 0.01)
                 log_step(step=1, action="SUBMIT_FIX", reward=rw, done=True, error=err_msg)
             except Exception:
                 results[task_id] = {
-                    "reward": 0, "steps": 0, "error": err_msg,
-                    "step_rewards": [0], "success": False,
+                    "reward": 0.01, "steps": 0, "error": err_msg,
+                    "step_rewards": [0.01], "success": False,
                 }
-                log_step(step=0, action="NONE", reward=0, done=True, error=err_msg)
+                log_step(step=0, action="NONE", reward=0.01, done=True, error=err_msg)
 
         # ── [END] ─────────────────────────────────────────────────
         r = results[task_id]
-        rw = r.get("reward", 0)
+        rw = r.get("reward", 0.01)
         ok = r.get("success", False)
         steps = r.get("steps", 0)
-        step_rewards = r.get("step_rewards", [0])
+        step_rewards = r.get("step_rewards", [0.01])
         log_end(success=ok, steps=steps, score=rw, rewards=step_rewards)
 
     # ── Summary ────────────────────────────────────────────────────
@@ -429,12 +429,12 @@ def run_inference() -> Dict[str, Dict[str, Any]]:
     print(f"{'='*60}", flush=True)
 
     for tid, r in results.items():
-        rw = r.get("reward", 0)
+        rw = r.get("reward", 0.01)
         err = f"  ERR={r['error']}" if r.get("error") else ""
         print(f"{tid:<32} reward={rw:.2f} steps={r.get('steps', 0)}{err}", flush=True)
 
     valid = [r["reward"] for r in results.values() if "error" not in r]
-    mean = sum(valid) / len(valid) if valid else 0
+    mean = sum(valid) / len(valid) if valid else 0.01
     print(f"\nMean: {mean:.2f}", flush=True)
 
     return results

@@ -23,10 +23,10 @@ _HISTORY_WINDOW = 5
 # ---------------------------------------------------------------------------
 
 def _clamp_reward_score(v: float) -> float:
-    """Keep for backward compat — now just returns 1 or 0."""
+    """Clamp reward to open interval (0, 1) — returns 0.99 or 0.01."""
     if not math.isfinite(v):
-        return 0
-    return 1 if v >= 1.0 else 0
+        return 0.01
+    return 0.99 if v >= 0.99 else 0.01
 
 
 def compute_reward(
@@ -36,15 +36,15 @@ def compute_reward(
     prev_passed: int,
     code: str,
 ) -> Reward:
-    """Compute reward — binary pass/fail. 1 or 0."""
+    """Compute reward — strictly in open interval (0, 1)."""
     passed = test_results.get("passed", 0)
     total = test_results.get("total", 0)
 
     if passed == total and total > 0:
-        return Reward(value=1, partial_credit=1, penalty=0.0,
+        return Reward(value=0.99, partial_credit=0.99, penalty=0.0,
                       reason="All tests pass")
 
-    return Reward(value=0, partial_credit=0, penalty=0.0,
+    return Reward(value=0.01, partial_credit=0.01, penalty=0.0,
                   reason=f"Tests failing: {passed}/{total}")
 
 
